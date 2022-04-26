@@ -1,0 +1,23 @@
+{
+    "name": "USBLibrarySTM32",
+    "version": "0.1.0",
+    "description": "This library adds a very basic implementation of the original AVR Arduino USB API to make existing libraries compatible with stm32 boards. Caution, this library is very beta and most likely not suited for production code unless you make sure to test it thoroughly!",
+    "keywords": "USB, stm32, HID",
+    "repository":
+    {
+      "type": "git",
+      "url": "https://github.com/Levi--G/USBLibrarySTM32.git"
+    },
+    "authors":
+    [
+      {
+        "name": "Levi Gillis",
+        "email": "gillislevi@gmail.com",
+        "url": "https://github.com/Levi--G"
+      }
+    ],
+    "license": "LGPL",
+    "homepage": "https://github.com/Levi--G/USBLibrarySTM32",
+    "frameworks": "arduino",
+    "platforms": "ststm32"
+  }
