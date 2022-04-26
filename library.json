@@ -16,7 +16,7 @@
         "url": "https://github.com/Levi--G"
       }
     ],
-    "license": "LGPL",
+    "license": "LGPL-3.0-or-later",
     "homepage": "https://github.com/Levi--G/USBLibrarySTM32",
     "frameworks": "arduino",
     "platforms": "ststm32"

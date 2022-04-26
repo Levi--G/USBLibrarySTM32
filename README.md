@@ -1,6 +1,6 @@
 # USBLibrary for stm32
 
-Version 0.1.0
+[![PlatformIO Registry](https://badges.registry.platformio.org/packages/levi--g/library/USBLibrarySTM32.svg)](https://registry.platformio.org/libraries/levi--g/USBLibrarySTM32)
 
 This library adds a very basic implementation of the original AVR Arduino USB API to make existing libraries compatible with stm32 boards. Caution, this library is very beta and most likely not suited for production code unless you make sure to test it thoroughly!
 
@@ -33,7 +33,10 @@ On these boards:
 
 ## Installation Instructions
 
-Todo ;)
+- Include the library via [platformio](https://registry.platformio.org/libraries/levi--g/USBLibrarySTM32) or Arduino IDE
+- Add `-D USBCON`, `-D PLUGGABLE_USB_ENABLED` and `-D USBD_USE_HID_COMPOSITE` to your build flags
+- Call `USB_Begin();` in your Setup
+- Do **NOT** include the builtin usb-composite Keyboard or mouse libraries, if you want to use mouse or keyboard include the [Arduino libraries](https://registry.platformio.org/libraries/arduino-libraries/Mouse) instead
 
 ## Examples
 
