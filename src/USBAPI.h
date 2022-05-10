@@ -36,6 +36,8 @@ typedef unsigned long u32;
 #define USB_EP_SIZE 64
 #endif
 
+#define EPX_SIZE USB_EP_SIZE
+
 #if defined(USBCON)
 
 // #include "USBDesc.h"
@@ -76,8 +78,16 @@ typedef struct
 #define TRANSFER_ZERO		0x20
 
 int USB_SendControl(uint8_t flags, const void* d, int len);
+int USB_RecvControl(void* d, int len);
+//int USB_RecvControlLong(void* d, int len); // not implemented in original avr core
+uint8_t	USB_Available(uint8_t ep);
 uint8_t USB_SendSpace(uint8_t ep);
+int USB_SendZLP(uint8_t ep);	// blocking
 int USB_Send(uint8_t ep, const void* data, int len);	// blocking
+int USB_SendQuick(uint8_t ep, const void* data, int len);	// non-blocking
+bool USB_SendAvailable(uint8_t ep);
+int USB_Recv(uint8_t ep, void* data, int len);		// non-blocking
+int USB_Recv(uint8_t ep);	// non-blocking
 void USB_Flush(uint8_t ep);
 void USB_Begin();
 bool USB_Running();

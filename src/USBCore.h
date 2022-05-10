@@ -55,13 +55,13 @@
 
 //	Class requests
 
-// #define CDC_SET_LINE_CODING			0x20
-// #define CDC_GET_LINE_CODING			0x21
-// #define CDC_SET_CONTROL_LINE_STATE	0x22
-// #define CDC_SEND_BREAK				0x23
+#define CDC_SET_LINE_CODING			0x20
+#define CDC_GET_LINE_CODING			0x21
+#define CDC_SET_CONTROL_LINE_STATE	0x22
+#define CDC_SEND_BREAK				0x23
 
-// #define MSC_RESET					0xFF
-// #define MSC_GET_MAX_LUN				0xFE
+#define MSC_RESET					0xFF
+#define MSC_GET_MAX_LUN				0xFE
 
 //	Descriptors
 
@@ -195,18 +195,18 @@ typedef struct
 } EndpointDescriptor;
 
 // Interface Association Descriptor
-// Used to bind 2 interfaces together in CDC compostite device
-// typedef struct
-// {
-// 	u8 len;				// 8
-// 	u8 dtype;			// 11
-// 	u8 firstInterface;
-// 	u8 interfaceCount;
-// 	u8 functionClass;
-// 	u8 funtionSubClass;
-// 	u8 functionProtocol;
-// 	u8 iInterface;
-// } IADDescriptor;
+// Used to bind 2 interfaces together in CDC composite device
+typedef struct
+{
+	u8 len;				// 8
+	u8 dtype;			// 11
+	u8 firstInterface;
+	u8 interfaceCount;
+	u8 functionClass;
+	u8 funtionSubClass;
+	u8 functionProtocol;
+	u8 iInterface;
+} IADDescriptor;
 
 //	CDC CS interface descriptor
 // typedef struct

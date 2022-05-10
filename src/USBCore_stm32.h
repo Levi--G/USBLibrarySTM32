@@ -28,36 +28,38 @@
 #include "usbd_ioreq.h"
 #include "usbd_ep_conf.h"
 
-#define HID_DESCRIPTOR_TYPE           0x21
-#define HID_REPORT_DESC               0x22
+#define HID_DESCRIPTOR_TYPE 0x21
+#define HID_REPORT_DESC 0x22
 
 #ifndef HID_HS_BINTERVAL
-#define HID_HS_BINTERVAL              0x07U
+#define HID_HS_BINTERVAL 0x07U
 #endif /* HID_HS_BINTERVAL */
 
 #ifndef HID_FS_BINTERVAL
-#define HID_FS_BINTERVAL            0x0AU
+#define HID_FS_BINTERVAL 0x0AU
 #endif /* HID_FS_BINTERVAL */
 
-#define HID_REQ_SET_PROTOCOL          0x0BU
-#define HID_REQ_GET_PROTOCOL          0x03U
+#define HID_REQ_SET_PROTOCOL 0x0BU
+#define HID_REQ_GET_PROTOCOL 0x03U
 
-#define HID_REQ_SET_IDLE              0x0AU
-#define HID_REQ_GET_IDLE              0x02U
+#define HID_REQ_SET_IDLE 0x0AU
+#define HID_REQ_GET_IDLE 0x02U
 
-#define HID_REQ_SET_REPORT            0x09U
-#define HID_REQ_GET_REPORT            0x01U
+#define HID_REQ_SET_REPORT 0x09U
+#define HID_REQ_GET_REPORT 0x01U
 
-typedef enum {
+typedef enum
+{
   HID_IDLE = 0,
   HID_BUSY,
 } HID_StateTypeDef;
 
-typedef struct {
-  uint32_t             Protocol;
-  uint32_t             IdleState;
-  uint32_t             AltSetting;
-  HID_StateTypeDef     EPstate[16];
+typedef struct
+{
+  uint32_t Protocol;
+  uint32_t IdleState;
+  uint32_t AltSetting;
+  HID_StateTypeDef EPstate[16];
 } USBD_HID_HandleTypeDef;
 
 #endif /* USBCON */
