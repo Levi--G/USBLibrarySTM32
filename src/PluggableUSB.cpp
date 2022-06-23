@@ -21,7 +21,6 @@
 #include "PluggableUSB.h"
 
 #if defined(USBCON)	
-#ifdef PLUGGABLE_USB_ENABLED
 
 extern uint8_t _initEndpoints[];
 
@@ -112,7 +111,5 @@ PluggableUSB_::PluggableUSB_() : lastIf(0),
 {
 	// Empty
 }
-
-#endif
 
 #endif /* if defined(USBCON) */

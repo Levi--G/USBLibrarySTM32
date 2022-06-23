@@ -59,7 +59,7 @@ typedef struct
   uint32_t Protocol;
   uint32_t IdleState;
   uint32_t AltSetting;
-  HID_StateTypeDef EPstate[16];
+  HID_StateTypeDef TXstate[USB_MAX_EPS];
 } USBD_HID_HandleTypeDef;
 
 #endif /* USBCON */
