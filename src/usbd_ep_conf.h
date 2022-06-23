@@ -20,8 +20,11 @@
 #ifndef __USBD_EP_CONF_H
 #define __USBD_EP_CONF_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
-#include "usbd_def.h"
 
 // typedef struct
 // {
@@ -37,7 +40,7 @@
 typedef struct
 {
   uint32_t ep_num;  /* Endpoint number+direction */
-  uint32_t ep_type;  /* Endpoint number+direction */
+  uint32_t ep_type;  /* Endpoint type */
   uint32_t ep_size; /* Endpoint size */
   uint32_t ep_kind; /* PCD Endpoint Kind: PCD_SNG_BUF or PCD_DBL_BUF */
 } ep_desc_t;
@@ -47,7 +50,7 @@ typedef struct
 
 #define PMA_BASE_ADDR 0x40 //4*uint16*max EP
 #ifndef PMA_MAX_SIZE
-#define PMA_MAX_SIZE 512
+#define PMA_MAX_SIZE (512 - PMA_BASE_ADDR)
 #endif
 
 /* Size in words, byte size divided by 2 */
@@ -64,10 +67,16 @@ typedef struct
 
 extern ep_desc_t ep_def[USB_MAX_EPS_SLOTS];
 
+uint8_t USB_PMA_GetNumEndpoints();
 uint8_t USB_PMA_GetNumEndpointsSlots();
 uint32_t USB_PMA_GetNextEndpoint();
 uint8_t USB_PMA_GetNextEndpointSlot();
 int USB_PMA_GetEndpointsSize();
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __USBD_EP_CONF_H */
 

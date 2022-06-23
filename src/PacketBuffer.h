@@ -3,32 +3,55 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#define PACKETBUFFER_SIZE 64
+#define PACKETBUFFER_COUNT 3
+
 typedef struct
 {
 	uint8_t len;
 	uint8_t pos;
-	uint8_t buf[64];
+	uint8_t buf[PACKETBUFFER_SIZE];
+
+	uint8_t Read(uint8_t *data, uint8_t length)
+	{
+		uint8_t read = min(Remaining(), length);
+		if (read)
+		{
+			memcpy(data, buf + pos, read);
+			pos += read;
+		}
+		return read;
+	}
+	uint8_t Remaining()
+	{
+		return len - pos;
+	}
+	bool Empty()
+	{
+		return Remaining() <= 0;
+	}
 } USBD_HID_BufferItem;
 
 class PacketBuffer
 {
 public:
-	static constexpr uint8_t capacity = 3;
+	static constexpr uint8_t capacity = PACKETBUFFER_COUNT;
 	USBD_HID_BufferItem *reserve()
 	{
-		auto ptr = tail + 1;
-		if (ptr == buffer + capacity)
+		auto result = newTail();
+		if (count == capacity)
 		{
-			ptr = buffer;
+			shift();
 		}
-		return ptr;
+		return result;
 	}
 	void commit()
 	{
-		tail = reserve();
+		tail = newTail();
 		if (count == capacity)
 		{
-			head = newHead();
+			//should not happen but you never know
+			shift();
 		}
 		else if (count++ == 0)
 		{
@@ -41,7 +64,7 @@ public:
 	}
 	USBD_HID_BufferItem *shift()
 	{
-		if (count == 0)
+		if (count <= 0)
 			return head;
 		auto result = head;
 		head = newHead();
@@ -64,18 +87,43 @@ public:
 	{
 		return count == capacity;
 	}
+	void clear()
+	{
+		count = 0;
+		head = buffer;
+		tail = buffer;
+	}
+	uint16_t totalBytesAvailable()
+	{
+		uint16_t total = 0;
+		auto ptr = read();
+		for (size_t i = 0; i < size(); i++)
+		{
+			total += ptr->Remaining();
+			ptr = nextPtr(ptr);
+		}
+		return total;
+	}
 
 private:
 	USBD_HID_BufferItem buffer[capacity];
-	USBD_HID_BufferItem *head;
-	USBD_HID_BufferItem *tail;
-	uint8_t count;
+	USBD_HID_BufferItem *head = buffer;
+	USBD_HID_BufferItem *tail = buffer;
+	uint8_t count = 0;
 	USBD_HID_BufferItem *newHead()
 	{
-		auto result = head + 1;
-		if (head >= buffer + capacity)
+		return nextPtr(head);
+	}
+	USBD_HID_BufferItem *newTail()
+	{
+		return nextPtr(tail);
+	}
+	USBD_HID_BufferItem *nextPtr(USBD_HID_BufferItem *current)
+	{
+		auto result = current + 1;
+		if (result >= buffer + capacity)
 		{
-			head = buffer;
+			result = buffer;
 		}
 		return result;
 	}

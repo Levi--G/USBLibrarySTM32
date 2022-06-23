@@ -8,7 +8,7 @@
 #ifdef USBCON
 
 #include "usbd_if.h"
-#include "usbd_cdc_if.h"
+//#include "usbd_cdc_if.h"
 #include "stm32yyxx_ll_system.h"
 
 #if !defined(USBD_REENUM_DISABLED)
@@ -168,13 +168,6 @@ WEAK void USBD_reenumerate(void)
 #else /* !defined(USBD_REENUM_DISABLED) */
 WEAK void USBD_reenumerate(void) { }
 #endif
-
-#ifdef USBD_USE_CDC
-void USBD_CDC_init(void)
-{
-  CDC_init();
-}
-#endif /* USBD_USE_CDC */
 
 /**
   * @brief  Configures system clock and system IP clocks after wake-up from USB

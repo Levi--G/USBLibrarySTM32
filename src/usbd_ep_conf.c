@@ -18,6 +18,8 @@
 #if defined(HAL_PCD_MODULE_ENABLED) && defined(USBCON)
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_ep_conf.h"
+#include <stdbool.h>
+#include "usbd_def.h"
 
 ep_desc_t ep_def[USB_MAX_EPS_SLOTS] = {
     {0x00, 0, USB_FS_MAX_PACKET_SIZE, PCD_SNG_BUF},
@@ -37,6 +39,28 @@ uint8_t USB_PMA_GetNumEndpointsSlots()
   return eps;
 }
 
+uint8_t USB_PMA_GetNumEndpoints()
+{
+  uint8_t count = 0;
+  bool inuse[USB_MAX_EPS];
+  for (uint8_t i = 1; i < USB_MAX_EPS_SLOTS; i++)
+  {
+    if (ep_def[i].ep_size != 0)
+    {
+      if (!inuse[SMALL_EP(ep_def[i].ep_num)])
+      {
+        count++;
+        inuse[SMALL_EP(ep_def[i].ep_num)] = true;
+      }
+    }
+    else
+    {
+      break;
+    }
+  }
+  return count;
+}
+
 uint32_t USB_PMA_GetNextEndpoint()
 {
   uint32_t maxep = 0;
@@ -51,6 +75,7 @@ uint32_t USB_PMA_GetNextEndpoint()
       break;
     }
   }
+  maxep++;
   if (maxep >= USB_MAX_EPS)
   {
     return 0;

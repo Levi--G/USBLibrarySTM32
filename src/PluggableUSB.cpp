@@ -19,16 +19,16 @@
 
 #include "USBAPI.h"
 #include "PluggableUSB.h"
+#include "usbd_ep_conf.h"
 
-#if defined(USBCON)	
+#if defined(USBCON)
 
-extern uint8_t _initEndpoints[];
-
-int PluggableUSB_::getInterface(uint8_t* interfaceCount)
+int PluggableUSB_::getInterface(uint8_t *interfaceCount)
 {
 	int sent = 0;
-	PluggableUSBModule* node;
-	for (node = rootNode; node; node = node->next) {
+	PluggableUSBModule *node;
+	for (node = rootNode; node; node = node->next)
+	{
 		int res = node->getInterface(interfaceCount);
 		if (res < 0)
 			return -1;
@@ -37,10 +37,11 @@ int PluggableUSB_::getInterface(uint8_t* interfaceCount)
 	return sent;
 }
 
-int PluggableUSB_::getDescriptor(USBSetup& setup)
+int PluggableUSB_::getDescriptor(USBSetup &setup)
 {
-	PluggableUSBModule* node;
-	for (node = rootNode; node; node = node->next) {
+	PluggableUSBModule *node;
+	for (node = rootNode; node; node = node->next)
+	{
 		int ret = node->getDescriptor(setup);
 		// ret!=0 -> request has been processed
 		if (ret)
@@ -51,18 +52,21 @@ int PluggableUSB_::getDescriptor(USBSetup& setup)
 
 void PluggableUSB_::getShortName(char *iSerialNum)
 {
-	PluggableUSBModule* node;
-	for (node = rootNode; node; node = node->next) {
+	PluggableUSBModule *node;
+	for (node = rootNode; node; node = node->next)
+	{
 		iSerialNum += node->getShortName(iSerialNum);
 	}
 	*iSerialNum = 0;
 }
 
-bool PluggableUSB_::setup(USBSetup& setup)
+bool PluggableUSB_::setup(USBSetup &setup)
 {
-	PluggableUSBModule* node;
-	for (node = rootNode; node; node = node->next) {
-		if (node->setup(setup)) {
+	PluggableUSBModule *node;
+	for (node = rootNode; node; node = node->next)
+	{
+		if (node->setup(setup))
+		{
 			return true;
 		}
 	}
@@ -71,15 +75,20 @@ bool PluggableUSB_::setup(USBSetup& setup)
 
 bool PluggableUSB_::plug(PluggableUSBModule *node)
 {
-	if ((lastEp + node->numEndpoints) > USB_ENDPOINTS) {
+	if ((lastEp + node->numEndpoints) > USB_ENDPOINTS || (USB_PMA_GetEndpointsSize() + (USB_EP_SIZE * node->numEndpoints)) > PMA_MAX_SIZE)
+	{
 		return false;
 	}
 
-	if (!rootNode) {
+	if (!rootNode)
+	{
 		rootNode = node;
-	} else {
+	}
+	else
+	{
 		PluggableUSBModule *current = rootNode;
-		while (current->next) {
+		while (current->next)
+		{
 			current = current->next;
 		}
 		current->next = node;
@@ -88,26 +97,35 @@ bool PluggableUSB_::plug(PluggableUSBModule *node)
 	node->pluggedInterface = lastIf;
 	node->pluggedEndpoint = lastEp;
 	lastIf += node->numInterfaces;
-	for (uint8_t i = 0; i < node->numEndpoints; i++) {
-		_initEndpoints[lastEp] = node->endpointType[i];
-		lastEp++;
+	for (uint8_t i = 0; i < node->numEndpoints; i++)
+	{
+		uint8_t slot = USB_PMA_GetNextEndpointSlot();
+		uint32_t ep = USB_PMA_GetNextEndpoint();
+		if (slot)
+		{
+			//_initEndpoints[lastEp] = node->endpointType[i];
+			uint8_t type = node->endpointType[i];
+			ep_def[slot] = {ep | (type & (uint32_t)USB_ENDPOINT_DIRECTION_MASK), (type & (uint32_t)USB_ENDPOINT_TYPE_MASK), USB_EP_SIZE, PCD_SNG_BUF};
+			lastEp++;
+		}
 	}
-	if (USB_Running()){
+	if (USB_Running())
+	{
 		USB_End();
 		USB_Begin();
 	}
 	return true;
 }
 
-PluggableUSB_& PluggableUSB()
+PluggableUSB_ &PluggableUSB()
 {
 	static PluggableUSB_ obj;
 	return obj;
 }
 
 PluggableUSB_::PluggableUSB_() : lastIf(0),
-                                 lastEp(1),
-                                 rootNode(NULL)
+								 lastEp(1),
+								 rootNode(NULL)
 {
 	// Empty
 }
