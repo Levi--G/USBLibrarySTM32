@@ -17,7 +17,7 @@
 */
 
 #include <Arduino.h>
-#include "CDC.h"
+#include "SerialUSB.h"
 #include "USBAPI.h"
 
 #include <stdlib.h>
@@ -63,7 +63,7 @@ static volatile int32_t breakValue = -1;
 #define CDC_RX CDC_ENDPOINT_OUT
 #define CDC_TX CDC_ENDPOINT_IN
 
-int Serial_::getInterface(uint8_t *interfaceNum)
+int SerialUSB_::getInterface(uint8_t *interfaceNum)
 {
 	interfaceNum[0] += 2; // uses 2
 	CDCDescriptor _cdcInterface = {
@@ -86,7 +86,7 @@ int Serial_::getInterface(uint8_t *interfaceNum)
 	return USB_SendControl(0, &_cdcInterface, sizeof(_cdcInterface));
 }
 
-int Serial_::getDescriptor(USBSetup & /* setup */)
+int SerialUSB_::getDescriptor(USBSetup & /* setup */)
 {
 	return 0;
 }
@@ -102,7 +102,7 @@ static void utox8(uint32_t val, char *s)
 	}
 }
 
-uint8_t Serial_::getShortName(char *name)
+uint8_t SerialUSB_::getShortName(char *name)
 {
 // from section 9.3.3 of the datasheet
 #define SERIAL_NUMBER_WORD_0 *(volatile uint32_t *)(0x0080A00C)
@@ -117,11 +117,11 @@ uint8_t Serial_::getShortName(char *name)
 	return 32;
 }
 
-void Serial_::handleEndpoint(int /* ep */)
+void SerialUSB_::handleEndpoint(int /* ep */)
 {
 }
 
-bool Serial_::setup(USBSetup &setup)
+bool SerialUSB_::setup(USBSetup &setup)
 {
 	uint8_t requestType = setup.bmRequestType;
 	uint8_t r = setup.bRequest;
@@ -156,26 +156,14 @@ bool Serial_::setup(USBSetup &setup)
 
 		if (r == CDC_SET_LINE_CODING || r == CDC_SET_CONTROL_LINE_STATE)
 		{
-			// auto-reset into the bootloader is triggered when the port, already
-			// open at 1200 bps, is closed. We check DTR state to determine if host
-			// port is open (bit 0 of lineState).
-			// if (_usbLineInfo.dwDTERate == 1200 && (_usbLineInfo.lineState & CDC_LINESTATE_DTR) == 0)
-			// {
+			//TODO reset
 			// 	NVIC_SystemReset();
-			// 	// initiateReset(250);
-			// }
-			// else
-			// {
-			// 	// cancelReset();
-			// }
-			USB_SendZLP(0);
-			//USBDevice.sendZlp(0);
+			// USB_SendZLP(0);
 		}
 
 		if (CDC_SEND_BREAK == r)
 		{
 			breakValue = ((uint16_t)setup.wValueH << 8) | setup.wValueL;
-			// USBDevice.sendZlp(0);
 			USB_SendZLP(0);
 		}
 		return true;
@@ -183,7 +171,7 @@ bool Serial_::setup(USBSetup &setup)
 	return false;
 }
 
-Serial_::Serial_() : PluggableUSBModule(3, 2, epType), stalled(false)
+SerialUSB_::SerialUSB_() : PluggableUSBModule(3, 2, epType), stalled(false)
 {
 	epType[0] = USB_ENDPOINT_TYPE_INTERRUPT | USB_ENDPOINT_IN(0);
 	epType[1] = USB_ENDPOINT_TYPE_BULK | USB_ENDPOINT_OUT(0);
@@ -191,36 +179,36 @@ Serial_::Serial_() : PluggableUSBModule(3, 2, epType), stalled(false)
 	PluggableUSB().plug(this);
 }
 
-void Serial_::begin(uint32_t /* baud_count */)
+void SerialUSB_::begin(uint32_t /* baud_count */)
 {
 	// uart config is ignored in USB-CDC
 }
 
-void Serial_::begin(uint32_t /* baud_count */, uint8_t /* config */)
+void SerialUSB_::begin(uint32_t /* baud_count */, uint8_t /* config */)
 {
 	// uart config is ignored in USB-CDC
 }
 
-void Serial_::end(void)
+void SerialUSB_::end(void)
 {
 	memset((void *)&_usbLineInfo, 0, sizeof(_usbLineInfo));
 }
 
 int _serialPeek = -1;
 
-int Serial_::available(void)
+int SerialUSB_::available(void)
 {
 	return USB_Available(CDC_ENDPOINT_OUT) + (_serialPeek != -1);
 }
 
-int Serial_::availableForWrite(void)
+int SerialUSB_::availableForWrite(void)
 {
 	// return the number of bytes left in the current bank,
 	// always EP size - 1, because bank is flushed on every write
 	return (EPX_SIZE - 1);
 }
 
-int Serial_::peek(void)
+int SerialUSB_::peek(void)
 {
 	if (_serialPeek != -1)
 		return _serialPeek;
@@ -228,7 +216,7 @@ int Serial_::peek(void)
 	return _serialPeek;
 }
 
-int Serial_::read(void)
+int SerialUSB_::read(void)
 {
 	if (_serialPeek != -1)
 	{
@@ -239,7 +227,7 @@ int Serial_::read(void)
 	return USB_Recv(CDC_ENDPOINT_OUT);
 }
 
-size_t Serial_::readBytes(char *buffer, size_t length)
+size_t SerialUSB_::readBytes(char *buffer, size_t length)
 {
 	size_t count = 0;
 	_startMillis = millis();
@@ -253,14 +241,14 @@ size_t Serial_::readBytes(char *buffer, size_t length)
 	return count;
 }
 
-void Serial_::flush(void)
+void SerialUSB_::flush(void)
 {
 	USB_Flush(CDC_ENDPOINT_IN);
 }
 
-size_t Serial_::write(const uint8_t *buffer, size_t size)
+size_t SerialUSB_::write(const uint8_t *buffer, size_t size)
 {
-	uint32_t r = USB_SendQuick(CDC_ENDPOINT_IN, buffer, size);
+	uint32_t r = USB_Send(CDC_ENDPOINT_IN, buffer, size);
 
 	if (r > 0)
 	{
@@ -273,7 +261,7 @@ size_t Serial_::write(const uint8_t *buffer, size_t size)
 	}
 }
 
-size_t Serial_::write(uint8_t c)
+size_t SerialUSB_::write(uint8_t c)
 {
 	return write(&c, 1);
 }
@@ -285,7 +273,7 @@ size_t Serial_::write(uint8_t c)
 // actually ready to receive and display the data.
 // We add a short delay before returning to fix a bug observed by Federico
 // where the port is configured (lineState != 0) but not quite opened.
-Serial_::operator bool()
+SerialUSB_::operator bool()
 {
 	// this is here to avoid spurious opening after upload
 	if (millis() < 500)
@@ -302,7 +290,7 @@ Serial_::operator bool()
 	return result;
 }
 
-int32_t Serial_::readBreak()
+int32_t SerialUSB_::readBreak()
 {
 	uint8_t enableInterrupts = ((__get_PRIMASK() & 0x1) == 0);
 
@@ -324,34 +312,32 @@ int32_t Serial_::readBreak()
 	return ret;
 }
 
-unsigned long Serial_::baud()
+unsigned long SerialUSB_::baud()
 {
 	return _usbLineInfo.dwDTERate;
 }
 
-uint8_t Serial_::stopbits()
+uint8_t SerialUSB_::stopbits()
 {
 	return _usbLineInfo.bCharFormat;
 }
 
-uint8_t Serial_::paritytype()
+uint8_t SerialUSB_::paritytype()
 {
 	return _usbLineInfo.bParityType;
 }
 
-uint8_t Serial_::numbits()
+uint8_t SerialUSB_::numbits()
 {
 	return _usbLineInfo.bDataBits;
 }
 
-bool Serial_::dtr()
+bool SerialUSB_::dtr()
 {
 	return ((_usbLineInfo.lineState & CDC_LINESTATE_DTR) == CDC_LINESTATE_DTR);
 }
 
-bool Serial_::rts()
+bool SerialUSB_::rts()
 {
 	return ((_usbLineInfo.lineState & CDC_LINESTATE_RTS) == CDC_LINESTATE_RTS);
 }
-
-Serial_ SerialUSB;

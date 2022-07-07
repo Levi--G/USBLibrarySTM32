@@ -4,23 +4,23 @@
 #include "USBAPI.h"
 #include "PluggableUSB.h"
 
-#define CDC_V1_10                               0x0110
-#define CDC_COMMUNICATION_INTERFACE_CLASS       0x02
+#define CDC_V1_10 0x0110
+#define CDC_COMMUNICATION_INTERFACE_CLASS 0x02
 
-#define CDC_CALL_MANAGEMENT                     0x01
-#define CDC_ABSTRACT_CONTROL_MODEL              0x02
-#define CDC_HEADER                              0x00
-#define CDC_ABSTRACT_CONTROL_MANAGEMENT         0x02
-#define CDC_UNION                               0x06
-#define CDC_CS_INTERFACE                        0x24
-#define CDC_CS_ENDPOINT                         0x25
-#define CDC_DATA_INTERFACE_CLASS                0x0A
+#define CDC_CALL_MANAGEMENT 0x01
+#define CDC_ABSTRACT_CONTROL_MODEL 0x02
+#define CDC_HEADER 0x00
+#define CDC_ABSTRACT_CONTROL_MANAGEMENT 0x02
+#define CDC_UNION 0x06
+#define CDC_CS_INTERFACE 0x24
+#define CDC_CS_ENDPOINT 0x25
+#define CDC_DATA_INTERFACE_CLASS 0x0A
 
-//	CDC CS interface descriptor
+// CDC CS interface descriptor
 typedef struct
 {
-	uint8_t len;		// 5
-	uint8_t dtype;		// 0x24
+	uint8_t len;   // 5
+	uint8_t dtype; // 0x24
 	uint8_t subtype;
 	uint8_t d0;
 	uint8_t d1;
@@ -28,52 +28,51 @@ typedef struct
 
 typedef struct
 {
-	uint8_t len;		// 4
-	uint8_t dtype;		// 0x24
+	uint8_t len;   // 4
+	uint8_t dtype; // 0x24
 	uint8_t subtype;
 	uint8_t d0;
 } CDCCSInterfaceDescriptor4;
 
 typedef struct
 {
-    uint8_t	len;
-    uint8_t 	dtype;		// 0x24
-    uint8_t 	subtype;	// 1
-    uint8_t 	bmCapabilities;
-    uint8_t 	bDataInterface;
+	uint8_t len;
+	uint8_t dtype;	 // 0x24
+	uint8_t subtype; // 1
+	uint8_t bmCapabilities;
+	uint8_t bDataInterface;
 } CMFunctionalDescriptor;
 
 typedef struct
 {
-    uint8_t	len;
-    uint8_t 	dtype;		// 0x24
-    uint8_t 	subtype;	// 1
-    uint8_t 	bmCapabilities;
+	uint8_t len;
+	uint8_t dtype;	 // 0x24
+	uint8_t subtype; // 1
+	uint8_t bmCapabilities;
 } ACMFunctionalDescriptor;
 
 typedef struct
 {
 	//	IAD
-	IADDescriptor				iad;	// Only needed on compound device
+	IADDescriptor iad; // Only needed on compound device
 	//	Control
-	InterfaceDescriptor			cif;
-	CDCCSInterfaceDescriptor	header;
-	ACMFunctionalDescriptor		controlManagement;		// ACM
-	CDCCSInterfaceDescriptor	functionalDescriptor;	// CDC_UNION
-	CMFunctionalDescriptor		callManagement;			// Call Management
-	EndpointDescriptor			cifin;
+	InterfaceDescriptor cif;
+	CDCCSInterfaceDescriptor header;
+	ACMFunctionalDescriptor controlManagement;	   // ACM
+	CDCCSInterfaceDescriptor functionalDescriptor; // CDC_UNION
+	CMFunctionalDescriptor callManagement;		   // Call Management
+	EndpointDescriptor cifin;
 
 	//	Data
-	InterfaceDescriptor			dif;
-	EndpointDescriptor			in;
-	EndpointDescriptor			out;
+	InterfaceDescriptor dif;
+	EndpointDescriptor in;
+	EndpointDescriptor out;
 } CDCDescriptor;
 
-
-class Serial_ : public Stream, public PluggableUSBModule
+class SerialUSB_ : public Stream, public PluggableUSBModule
 {
 public:
-	Serial_();
+	SerialUSB_();
 	void begin(uint32_t baud_count);
 	void begin(unsigned long, uint8_t);
 	void end(void);
@@ -116,12 +115,14 @@ public:
 	uint8_t numbits();
 	bool dtr();
 	bool rts();
-	enum {
+	enum
+	{
 		ONE_STOP_BIT = 0,
 		ONE_AND_HALF_STOP_BIT = 1,
 		TWO_STOP_BITS = 2,
 	};
-	enum {
+	enum
+	{
 		NO_PARITY = 0,
 		ODD_PARITY = 1,
 		EVEN_PARITY = 2,
@@ -130,19 +131,17 @@ public:
 	};
 
 protected:
-    // Implementation of the PUSBListNode
-    int getInterface(uint8_t* interfaceNum);
-    int getDescriptor(USBSetup& setup);
-    bool setup(USBSetup& setup);
-    uint8_t getShortName(char* name);
-    void handleEndpoint(int ep);
+	// Implementation of the PUSBListNode
+	int getInterface(uint8_t *interfaceNum);
+	int getDescriptor(USBSetup &setup);
+	bool setup(USBSetup &setup);
+	uint8_t getShortName(char *name);
+	void handleEndpoint(int ep);
 
 private:
 	int availableForStore(void);
 	bool stalled;
 	uint8_t epType[3];
-
 };
-extern Serial_ SerialUSB;
 
 #endif

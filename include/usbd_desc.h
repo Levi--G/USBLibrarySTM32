@@ -6,6 +6,9 @@
   ******************************************************************************
   * @attention
   *
+  * Modified by Levi Gillis @ 2022
+  * Adjusted and reimplemented for compatibility with arduino
+  * 
   * <h2><center>&copy; Copyright (c) 2015 STMicroelectronics.
   * All rights reserved.</center></h2>
   *

@@ -116,44 +116,23 @@
 #define USB_ENDPOINT_TYPE_BULK                 0x02
 #define USB_ENDPOINT_TYPE_INTERRUPT            0x03
 
-// #define TOBYTES(x) ((x) & 0xFF),(((x) >> 8) & 0xFF)
-
-// #define CDC_V1_10                               0x0110
-// #define CDC_COMMUNICATION_INTERFACE_CLASS       0x02
-
-// #define CDC_CALL_MANAGEMENT                     0x01
-// #define CDC_ABSTRACT_CONTROL_MODEL              0x02
-// #define CDC_HEADER                              0x00
-// #define CDC_ABSTRACT_CONTROL_MANAGEMENT         0x02
-// #define CDC_UNION                               0x06
-// #define CDC_CS_INTERFACE                        0x24
-// #define CDC_CS_ENDPOINT                         0x25
-// #define CDC_DATA_INTERFACE_CLASS                0x0A
-
-// #define MSC_SUBCLASS_SCSI						0x06 
-// #define MSC_PROTOCOL_BULK_ONLY					0x50 
-
-// #ifndef USB_VERSION
-// #define USB_VERSION 0x200
-// #endif
-
 //	Device
-// typedef struct {
-// 	u8 len;				// 18
-// 	u8 dtype;			// 1 USB_DEVICE_DESCRIPTOR_TYPE
-// 	u16 usbVersion;		// 0x200 or 0x210
-// 	u8	deviceClass;
-// 	u8	deviceSubClass;
-// 	u8	deviceProtocol;
-// 	u8	packetSize0;	// Packet 0
-// 	u16	idVendor;
-// 	u16	idProduct;
-// 	u16	deviceVersion;	// 0x100
-// 	u8	iManufacturer;
-// 	u8	iProduct;
-// 	u8	iSerialNumber;
-// 	u8	bNumConfigurations;
-// } DeviceDescriptor;
+typedef struct {
+	u8 len;				// 18
+	u8 dtype;			// 1 USB_DEVICE_DESCRIPTOR_TYPE
+	u16 usbVersion;		// 0x200 or 0x210
+	u8	deviceClass;
+	u8	deviceSubClass;
+	u8	deviceProtocol;
+	u8	packetSize0;	// Packet 0
+	u16	idVendor;
+	u16	idProduct;
+	u16	deviceVersion;	// 0x100
+	u8	iManufacturer;
+	u8	iProduct;
+	u8	iSerialNumber;
+	u8	bNumConfigurations;
+} DeviceDescriptor;
 
 //	Config
 typedef struct {
@@ -208,66 +187,12 @@ typedef struct
 	u8 iInterface;
 } IADDescriptor;
 
-//	CDC CS interface descriptor
-// typedef struct
-// {
-// 	u8 len;		// 5
-// 	u8 dtype;	// 0x24
-// 	u8 subtype;
-// 	u8 d0;
-// 	u8 d1;
-// } CDCCSInterfaceDescriptor;
-
-// typedef struct
-// {
-// 	u8 len;		// 4
-// 	u8 dtype;	// 0x24
-// 	u8 subtype;
-// 	u8 d0;
-// } CDCCSInterfaceDescriptor4;
-
-// typedef struct 
-// {
-//     u8	len;
-//     u8 	dtype;		// 0x24
-//     u8 	subtype;	// 1
-//     u8 	bmCapabilities;
-//     u8 	bDataInterface;
-// } CMFunctionalDescriptor;
-	
-// typedef struct 
-// {
-//     u8	len;
-//     u8 	dtype;		// 0x24
-//     u8 	subtype;	// 1
-//     u8 	bmCapabilities;
-// } ACMFunctionalDescriptor;
-
-// typedef struct 
-// {
-// 	//	IAD
-// 	IADDescriptor				iad;	// Only needed on compound device
-
-// 	//	Control
-// 	InterfaceDescriptor			cif;	// 
-// 	CDCCSInterfaceDescriptor	header;
-// 	CMFunctionalDescriptor		callManagement;			// Call Management
-// 	ACMFunctionalDescriptor		controlManagement;		// ACM
-// 	CDCCSInterfaceDescriptor	functionalDescriptor;	// CDC_UNION
-// 	EndpointDescriptor			cifin;
-
-// 	//	Data
-// 	InterfaceDescriptor			dif;
-// 	EndpointDescriptor			in;
-// 	EndpointDescriptor			out;
-// } CDCDescriptor;
-
-// typedef struct 
-// {
-// 	InterfaceDescriptor			msc;
-// 	EndpointDescriptor			in;
-// 	EndpointDescriptor			out;
-// } MSCDescriptor;
+typedef struct 
+{
+	InterfaceDescriptor			msc;
+	EndpointDescriptor			in;
+	EndpointDescriptor			out;
+} MSCDescriptor;
 
 
 #define D_DEVICE(_class,_subClass,_proto,_packetSize0,_vid,_pid,_version,_im,_ip,_is,_configs) \
@@ -287,22 +212,5 @@ typedef struct
 
 #define D_CDCCS(_subtype,_d0,_d1)	{ 5, 0x24, _subtype, _d0, _d1 }
 #define D_CDCCS4(_subtype,_d0)		{ 4, 0x24, _subtype, _d0 }
-
-// Bootloader related fields
-// Old Caterina bootloader places the MAGIC key into unsafe RAM locations (it can be rewritten
-// by the running sketch before to actual reboot).
-// Newer bootloaders, recognizable by the LUFA "signature" at the end of the flash, can handle both
-// the usafe and the safe location.
-// #ifndef MAGIC_KEY
-// #define MAGIC_KEY 0x7777
-// #endif
-
-// #ifndef MAGIC_KEY_POS
-// #define MAGIC_KEY_POS 0x0800
-// #endif
-
-// #ifndef NEW_LUFA_SIGNATURE
-// #define NEW_LUFA_SIGNATURE 0xDCFB
-// #endif
 
 #endif

@@ -1,10 +1,10 @@
 /**
-  ******************************************************************************
-  * @file    usbd_if.c
-  * @author  fpistm
-  * @brief   USB Device common interface file
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file    usbd_if.c
+ * @author  fpistm
+ * @brief   USB Device common interface file
+ ******************************************************************************
+ */
 #ifdef USBCON
 
 #include "usbd_if.h"
@@ -54,41 +54,41 @@
 
 /* Compatibility with the old way to specify this */
 #if defined(USB_DISC_PIN) && !defined(USBD_ATTACH_PIN)
-  #define USBD_ATTACH_PIN USB_DISC_PIN
-  #define USBD_ATTACH_LEVEL LOW
-  #warning "USB_DISC_PIN is deprecated, use USBD_ATTACH_PIN instead"
+#define USBD_ATTACH_PIN USB_DISC_PIN
+#define USBD_ATTACH_LEVEL LOW
+#warning "USB_DISC_PIN is deprecated, use USBD_ATTACH_PIN instead"
 #endif /* defined(USB_DISC_PIN) && !defined(USBD_ATTACH_PIN) */
 
 /* Some sanity checks */
 #if defined(USBD_ATTACH_PIN) && defined(USBD_DETACH_PIN)
-  #error "Cannot define both USBD_ATTACH_PIN and USBD_DETACH_PIN"
+#error "Cannot define both USBD_ATTACH_PIN and USBD_DETACH_PIN"
 #endif /* defined(USBD_ATTACH_PIN) && defined(USBD_DETACH_PIN) */
 #if defined(USBD_ATTACH_PIN) && !defined(USBD_ATTACH_LEVEL)
-  #error "USBD_ATTACH_PIN also needs USBD_ATTACH_LEVEL defined"
+#error "USBD_ATTACH_PIN also needs USBD_ATTACH_LEVEL defined"
 #endif /* defined(USBD_ATTACH_PIN) && !defined(USBD_ATTACH_LEVEL) */
 #if defined(USBD_DETACH_PIN) && !defined(USBD_DETACH_LEVEL)
-  #error "USBD_DETACH_PIN also needs USBD_DETACH_LEVEL defined"
+#error "USBD_DETACH_PIN also needs USBD_DETACH_LEVEL defined"
 #endif /* defined(USBD_DETACH_PIN) && !defined(USBD_DETACH_LEVEL) */
 #if (defined(USBD_DETACH_PIN) || defined(USBD_ATTACH_PIN)) && defined(USBD_FIXED_PULLUP)
-  #error "Cannot define both USBD_FIXED_PULLUP and USBD_ATTACH_PIN or USBD_DETACH_PIN"
+#error "Cannot define both USBD_FIXED_PULLUP and USBD_ATTACH_PIN or USBD_DETACH_PIN"
 #endif /* (defined(USBD_DETACH_PIN) || defined(USBD_ATTACH_PIN)) && defined(USBD_FIXED_PULLUP) */
 
 /* Either of these bits indicate that there are internal pullups */
 #if defined(USB_BCDR_DPPU) || defined(USB_OTG_DCTL_SDIS) || defined(SYSCFG_PMC_USB_PU)
-  #define USBD_HAVE_INTERNAL_PULLUPS
+#define USBD_HAVE_INTERNAL_PULLUPS
 #endif /* defined(USB_BCDR_DPPU) || defined(USB_OTG_DCTL_SDIS) */
 
 /* Figure out which USB instance is used. This mirrors the decision made
  * in USBD_LL_Init in usbd_conf.c. */
 #if defined(USE_USB_HS)
-  #define USBD_USB_INSTANCE USB_OTG_HS
-  #define USBD_DP_PINNAME USB_OTG_HS_DP
+#define USBD_USB_INSTANCE USB_OTG_HS
+#define USBD_DP_PINNAME USB_OTG_HS_DP
 #elif defined(USB_OTG_FS)
-  #define USBD_USB_INSTANCE USB_OTG_FS
-  #define USBD_DP_PINNAME USB_OTG_FS_DP
+#define USBD_USB_INSTANCE USB_OTG_FS
+#define USBD_DP_PINNAME USB_OTG_FS_DP
 #elif defined(USB)
-  #define USBD_USB_INSTANCE USB
-  #define USBD_DP_PINNAME USB_DP
+#define USBD_USB_INSTANCE USB
+#define USBD_DP_PINNAME USB_DP
 #endif
 
 /*
@@ -99,34 +99,34 @@
  * know the pin number, only the pin name).
  */
 #if defined(USBD_ATTACH_PIN)
-  #define USBD_PULLUP_CONTROL_PINNAME digitalPinToPinName(USBD_ATTACH_PIN)
-  #define USBD_DETACH_LEVEL !(USBD_ATTACH_LEVEL)
+#define USBD_PULLUP_CONTROL_PINNAME digitalPinToPinName(USBD_ATTACH_PIN)
+#define USBD_DETACH_LEVEL !(USBD_ATTACH_LEVEL)
 #elif defined(USBD_DETACH_PIN)
-  #define USBD_PULLUP_CONTROL_PINNAME digitalPinToPinName(USBD_DETACH_PIN)
-  #define USBD_ATTACH_LEVEL !(USBD_DETACH_LEVEL)
+#define USBD_PULLUP_CONTROL_PINNAME digitalPinToPinName(USBD_DETACH_PIN)
+#define USBD_ATTACH_LEVEL !(USBD_DETACH_LEVEL)
 #elif !defined(USBD_HAVE_INTERNAL_PULLUPS) || defined(USBD_FIXED_PULLUP)
-  /* When no USB attach and detach pins were defined, and there are also
-  * no internal pullups, assume there is a fixed external pullup and apply
-  * the D+ trick. Also do this when there are internal *and* external
-  * pulups (which is a hardware bug, but there are boards out there with
-  * this). */
-  #define USBD_PULLUP_CONTROL_PINNAME USBD_DP_PINNAME
-  #define USBD_DETACH_LEVEL LOW
-  // USBD_ATTACH_LEVEL not needed.
-  #define USBD_DP_TRICK
+/* When no USB attach and detach pins were defined, and there are also
+ * no internal pullups, assume there is a fixed external pullup and apply
+ * the D+ trick. Also do this when there are internal *and* external
+ * pulups (which is a hardware bug, but there are boards out there with
+ * this). */
+#define USBD_PULLUP_CONTROL_PINNAME USBD_DP_PINNAME
+#define USBD_DETACH_LEVEL LOW
+// USBD_ATTACH_LEVEL not needed.
+#define USBD_DP_TRICK
 #endif
 
 /**
-  * @brief  Force to re-enumerate USB.
-  *
-  * This is intended to be called at startup by core code. It could be
-  * used at runtime, while USB is connected, to force re-enumeration
-  * too, but that does not work in all cases (when USB is enabled on an
-  * F103C8, setting output mode on the DP pin no longer has any effect).
-  *
-  * @param  None
-  * @retval None
-  */
+ * @brief  Force to re-enumerate USB.
+ *
+ * This is intended to be called at startup by core code. It could be
+ * used at runtime, while USB is connected, to force re-enumeration
+ * too, but that does not work in all cases (when USB is enabled on an
+ * F103C8, setting output mode on the DP pin no longer has any effect).
+ *
+ * @param  None
+ * @retval None
+ */
 WEAK void USBD_reenumerate(void)
 {
 #if defined(USBD_PULLUP_CONTROL_PINNAME)
@@ -166,17 +166,17 @@ WEAK void USBD_reenumerate(void)
 }
 
 #else /* !defined(USBD_REENUM_DISABLED) */
-WEAK void USBD_reenumerate(void) { }
+WEAK void USBD_reenumerate(void) {}
 #endif
 
 /**
-  * @brief  Configures system clock and system IP clocks after wake-up from USB
-  *         resume callBack
-  * @note   Weaked function which can be redefined by user at the sketch level.
-  *         By default, calls 'SystemClock_Config()'.
-  * @param  None
-  * @retval None
-  */
+ * @brief  Configures system clock and system IP clocks after wake-up from USB
+ *         resume callBack
+ * @note   Weaked function which can be redefined by user at the sketch level.
+ *         By default, calls 'SystemClock_Config()'.
+ * @param  None
+ * @retval None
+ */
 WEAK void USBD_SystemClockConfigFromResume(void)
 {
   configIPClock();

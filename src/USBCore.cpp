@@ -1,24 +1,24 @@
 /**
-  ******************************************************************************
-  * @file    USBCore.cpp
-  * @author  MCD Application Team
-  * @brief   This file provides the HID core functions.
-  ******************************************************************************
-  * @attention
-  * 
-  * Modified by Levi Gillis @ 2022
-  * Adjusted and reimplemented for compatibility with arduino
-  *
-  * <h2><center>&copy; Copyright (c) 2015 STMicroelectronics.
-  * All rights reserved.</center></h2>
-  *
-  * This software component is licensed by ST under Ultimate Liberty license
-  * SLA0044, the "License"; You may not use this file except in compliance with
-  * the License. You may obtain a copy of the License at:
-  *                      www.st.com/SLA0044
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file    USBCore.cpp
+ * @author  MCD Application Team
+ * @brief   This file provides the HID core functions.
+ ******************************************************************************
+ * @attention
+ *
+ * Modified by Levi Gillis @ 2022
+ * Adjusted and reimplemented for compatibility with arduino
+ *
+ * <h2><center>&copy; Copyright (c) 2015 STMicroelectronics.
+ * All rights reserved.</center></h2>
+ *
+ * This software component is licensed by ST under Ultimate Liberty license
+ * SLA0044, the "License"; You may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at:
+ *                      www.st.com/SLA0044
+ *
+ ******************************************************************************
+ */
 
 #ifdef USBCON
 #ifdef USBCON
@@ -189,7 +189,7 @@ int USB_Send(uint8_t endp, const void *data, int len)
   USBD_HID_HandleTypeDef *hhid;
   if (GetHHID(hhid))
   {
-    //USB_Flush(endp);
+    // USB_Flush(endp);
     int ret = USB_SendQuick(endp, data, len);
     // USB_Send is blocking in the original avr implementation
     USB_Flush(endp);
@@ -308,12 +308,12 @@ int USB_RecvControl(void *data, int len)
 }
 
 /**
-  * @brief  USBD_HID_Init
-  *         Initialize the HID interface
-  * @param  pdev: device instance
-  * @param  cfgidx: Configuration index
-  * @retval status
-  */
+ * @brief  USBD_HID_Init
+ *         Initialize the HID interface
+ * @param  pdev: device instance
+ * @param  cfgidx: Configuration index
+ * @retval status
+ */
 static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev,
                              uint8_t cfgidx)
 {
@@ -366,12 +366,12 @@ static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev,
 }
 
 /**
-  * @brief  USBD_HID_DeInit
-  *         DeInitialize the HID layer
-  * @param  pdev: device instance
-  * @param  cfgidx: Configuration index
-  * @retval status
-  */
+ * @brief  USBD_HID_DeInit
+ *         DeInitialize the HID layer
+ * @param  pdev: device instance
+ * @param  cfgidx: Configuration index
+ * @retval status
+ */
 static uint8_t USBD_HID_DeInit(USBD_HandleTypeDef *pdev,
                                uint8_t cfgidx)
 {
@@ -528,12 +528,12 @@ uint8_t HandleSetup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
 }
 
 /**
-  * @brief  USBD_HID_Setup
-  *         Handle the HID specific requests
-  * @param  pdev: instance
-  * @param  req: usb requests
-  * @retval status
-  */
+ * @brief  USBD_HID_Setup
+ *         Handle the HID specific requests
+ * @param  pdev: instance
+ * @param  req: usb requests
+ * @retval status
+ */
 static uint8_t USBD_HID_Setup(USBD_HandleTypeDef *pdev,
                               USBD_SetupReqTypedef *req)
 {
@@ -546,7 +546,7 @@ static uint8_t USBD_HID_Setup(USBD_HandleTypeDef *pdev,
   {
     if (Recv_EP0)
     {
-      //transfer still in progress
+      // transfer still in progress
       return (uint8_t)USBD_FAIL;
     }
     EP0Setup = *req;
@@ -561,12 +561,12 @@ static uint8_t USBD_HID_Setup(USBD_HandleTypeDef *pdev,
 }
 
 /**
-  * @brief  USBD_HID_GetCfgFSDesc
-  *         return FS configuration descriptor
-  * @param  speed : current device speed
-  * @param  length : pointer data length
-  * @retval pointer to descriptor buffer
-  */
+ * @brief  USBD_HID_GetCfgFSDesc
+ *         return FS configuration descriptor
+ * @param  speed : current device speed
+ * @param  length : pointer data length
+ * @retval pointer to descriptor buffer
+ */
 static uint8_t *USBD_HID_GetFSCfgDesc(uint16_t *length)
 {
   /* Since this needs to be returned as pointer to an aligned array
@@ -584,28 +584,28 @@ static uint8_t *USBD_HID_GetFSCfgDesc(uint16_t *length)
 }
 
 /**
-  * @brief  USBD_HID_GetCfgHSDesc
-  *         return HS configuration descriptor
-  * @param  speed : current device speed
-  * @param  length : pointer data length
-  * @retval pointer to descriptor buffer
-  */
+ * @brief  USBD_HID_GetCfgHSDesc
+ *         return HS configuration descriptor
+ * @param  speed : current device speed
+ * @param  length : pointer data length
+ * @retval pointer to descriptor buffer
+ */
 static uint8_t *USBD_HID_GetHSCfgDesc(uint16_t *length)
 {
-  //should not happen/matter => return FS
+  // should not happen/matter => return FS
   return USBD_HID_GetFSCfgDesc(length);
 }
 
 /**
-  * @brief  USBD_HID_GetOtherSpeedCfgDesc
-  *         return other speed configuration descriptor
-  * @param  speed : current device speed
-  * @param  length : pointer data length
-  * @retval pointer to descriptor buffer
-  */
+ * @brief  USBD_HID_GetOtherSpeedCfgDesc
+ *         return other speed configuration descriptor
+ * @param  speed : current device speed
+ * @param  length : pointer data length
+ * @retval pointer to descriptor buffer
+ */
 static uint8_t *USBD_HID_GetOtherSpeedCfgDesc(uint16_t *length)
 {
-  //should not happen/matter => return FS
+  // should not happen/matter => return FS
   return USBD_HID_GetFSCfgDesc(length);
 }
 
@@ -623,17 +623,17 @@ static uint8_t USBD_HID_EP0_RxReady(USBD_HandleTypeDef *pdev)
     Recv_EP0 = 0;
     return (uint8_t)HandleSetup(pdev, &EP0Setup);
   }
-  //this should not happen?
+  // this should not happen?
   return (uint8_t)USBD_FAIL;
 }
 
 /**
-  * @brief  USBD_HID_DataIn
-  *         handle data IN Stage
-  * @param  pdev: device instance
-  * @param  epnum: endpoint index
-  * @retval status
-  */
+ * @brief  USBD_HID_DataIn
+ *         handle data IN Stage
+ * @param  pdev: device instance
+ * @param  epnum: endpoint index
+ * @retval status
+ */
 static uint8_t USBD_HID_DataIn(USBD_HandleTypeDef *pdev,
                                uint8_t endp)
 {
@@ -659,12 +659,12 @@ static uint8_t USBD_HID_DataIn(USBD_HandleTypeDef *pdev,
 }
 
 /**
-  * @brief  USBD_CDC_DataOut
-  *         Data received on non-control Out endpoint
-  * @param  pdev: device instance
-  * @param  epnum: endpoint number
-  * @retval status
-  */
+ * @brief  USBD_CDC_DataOut
+ *         Data received on non-control Out endpoint
+ * @param  pdev: device instance
+ * @param  epnum: endpoint number
+ * @retval status
+ */
 static uint8_t USBD_HID_DataOut(USBD_HandleTypeDef *pdev, uint8_t endp)
 {
   uint8_t ep = SMALL_EP(endp);
@@ -693,11 +693,11 @@ bool PrepareReceive(USBD_HandleTypeDef *pdev, uint8_t endp)
 }
 
 /**
-  * @brief  DeviceQualifierDescriptor
-  *         return Device Qualifier descriptor
-  * @param  length : pointer data length
-  * @retval pointer to descriptor buffer
-  */
+ * @brief  DeviceQualifierDescriptor
+ *         return Device Qualifier descriptor
+ * @param  length : pointer data length
+ * @retval pointer to descriptor buffer
+ */
 static uint8_t *USBD_HID_GetDeviceQualifierDesc(uint16_t *length)
 {
   // Serial1.println("DeviceQ");
