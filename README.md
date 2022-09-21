@@ -55,6 +55,10 @@ Warning, this is needed to use this library but will change the core to not use 
 - Download [usbd_conf.h](https://github.com/Levi--G/USBLibrarySTM32/raw/main/include/usbd_conf.h), [usbd_desc.h](https://github.com/Levi--G/USBLibrarySTM32/raw/main/include/usbd_desc.h), [usbd_ep_conf.h](https://github.com/Levi--G/USBLibrarySTM32/raw/main/include/usbd_ep_conf.h) and [usbd_if.h](https://github.com/Levi--G/USBLibrarySTM32/raw/main/include/usbd_if.h)
 - Place the 4 files in the usb directory
 
+## Uninstallation from core
+
+To revert the previous changes just delete the entire `%USERPROFILE%\.platformio\packages\framework-arduinoststm32` folder, platformio will download a new one and it will ensure everything is back to default.
+
 ## Examples
 
 Examples can also be copied from the examples folder on github
