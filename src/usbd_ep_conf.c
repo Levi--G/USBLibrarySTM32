@@ -46,6 +46,10 @@ uint8_t USB_PMA_GetNumEndpoints()
 {
   uint8_t count = 0;
   bool inuse[USB_MAX_EPS];
+  for (uint_fast8_t i = 0; i < USB_MAX_EPS; i++)
+  {
+    inuse[i] = false;
+  }
   for (uint8_t i = 1; i < USB_MAX_EPS_SLOTS; i++)
   {
     if (ep_def[i].ep_size != 0)

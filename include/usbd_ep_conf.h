@@ -39,9 +39,13 @@ extern "C"
 #define PCD_DBL_BUF 1U
 #endif
 
-//Can override default buffer by defining PCD_DEF_BUF globally
+// Can override default buffer by defining PCD_DEF_BUF globally
 #ifndef PCD_DEF_BUF
+#if defined(USB_OTG_FS)
+#define PCD_DEF_BUF PCD_DBL_BUF
+#else
 #define PCD_DEF_BUF PCD_SNG_BUF
+#endif
 #endif
 
   typedef struct
@@ -52,7 +56,11 @@ extern "C"
     uint32_t ep_kind; /* PCD Endpoint Kind: PCD_SNG_BUF or PCD_DBL_BUF */
   } ep_desc_t;
 
+#if defined(USB_OTG_FS)
+#define USB_MAX_EPS 4
+#else
 #define USB_MAX_EPS 8
+#endif
 #define USB_MAX_EPS_SLOTS (USB_MAX_EPS * 2)
 
 #define PMA_BASE_ADDR 0x40 // 4*uint16*max EP
