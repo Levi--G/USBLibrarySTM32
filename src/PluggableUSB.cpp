@@ -105,7 +105,7 @@ bool PluggableUSB_::plug(PluggableUSBModule *node)
 		{
 			//_initEndpoints[lastEp] = node->endpointType[i];
 			uint8_t type = node->endpointType[i];
-			ep_def[slot] = {ep | (type & (uint32_t)USB_ENDPOINT_DIRECTION_MASK), (type & (uint32_t)USB_ENDPOINT_TYPE_MASK), USB_EP_SIZE, PCD_SNG_BUF};
+			ep_def[slot] = {ep | (type & (uint32_t)USB_ENDPOINT_DIRECTION_MASK), (type & (uint32_t)USB_ENDPOINT_TYPE_MASK), USB_EP_SIZE, PCD_DEF_BUF};
 			lastEp++;
 		}
 	}

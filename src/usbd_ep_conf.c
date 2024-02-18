@@ -25,8 +25,8 @@
 #include "usbd_def.h"
 
 ep_desc_t ep_def[USB_MAX_EPS_SLOTS] = {
-    {0x00, 0, USB_FS_MAX_PACKET_SIZE, PCD_SNG_BUF},
-    {0x80, 0, USB_FS_MAX_PACKET_SIZE, PCD_SNG_BUF}};
+    {0x00, 0, USB_FS_MAX_PACKET_SIZE, PCD_DEF_BUF},
+    {0x80, 0, USB_FS_MAX_PACKET_SIZE, PCD_DEF_BUF}};
 
 uint8_t USB_PMA_GetNumEndpointsSlots()
 {
