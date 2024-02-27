@@ -2,7 +2,9 @@
 
 [![PlatformIO Registry](https://badges.registry.platformio.org/packages/levi--g/library/USBLibrarySTM32.svg)](https://registry.platformio.org/libraries/levi--g/USBLibrarySTM32)
 
-This library adds a very basic implementation of the original AVR Arduino USB API to make existing libraries compatible with stm32 boards. Caution, this library is very beta and most likely not suited for production code unless you make sure to test it thoroughly!
+This library adds a very basic implementation of the original AVR Arduino USB API to make existing libraries compatible with stm32 boards running the STM32Duino core. Caution, this library is very beta and most likely not suited for production code unless you make sure to test it thoroughly!
+
+STM32F103 is currently working with only minor bugs and STM32F4xx support is being worked on. The goal is to eventually get all 5 usb implementations of STM32 working and to merge it back into the main STM32duino core.
 
 ## Features
 
