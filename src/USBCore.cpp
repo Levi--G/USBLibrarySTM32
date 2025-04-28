@@ -21,7 +21,6 @@
  */
 
 #ifdef USBCON
-#ifdef USBCON
 
 /* Includes ------------------------------------------------------------------*/
 #include "Arduino.h"
@@ -705,6 +704,5 @@ static uint8_t *USBD_HID_GetDeviceQualifierDesc(uint16_t *length)
   *length = (uint16_t)sizeof(USBD_HID_DeviceQualifierDesc);
   return USBD_HID_DeviceQualifierDesc;
 }
-#endif /* USBD_USE_HID_COMPOSITE */
 #endif /* USBCON */
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

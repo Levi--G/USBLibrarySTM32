@@ -17,11 +17,11 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#if defined(USBCON)
+
 #include "USBAPI.h"
 #include "PluggableUSB.h"
 #include "usbd_ep_conf.h"
-
-#if defined(USBCON)
 
 int PluggableUSB_::getInterface(uint8_t *interfaceCount)
 {

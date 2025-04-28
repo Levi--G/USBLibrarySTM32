@@ -16,9 +16,9 @@
    SOFTWARE.
  */
 
-#include "HID.h"
-
 #if defined(USBCON)
+
+#include "HID.h"
 
 HID_ &HID()
 {
