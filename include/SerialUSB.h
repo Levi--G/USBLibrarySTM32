@@ -1,6 +1,8 @@
 #ifndef __CDC_H__
 #define __CDC_H__
 
+#if defined(USBCON)
+
 #include "USBAPI.h"
 #include "PluggableUSB.h"
 
@@ -143,5 +145,7 @@ private:
 	bool stalled;
 	uint8_t epType[3];
 };
+
+#endif /* USBCON */
 
 #endif

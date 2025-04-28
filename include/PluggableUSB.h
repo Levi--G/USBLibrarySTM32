@@ -20,10 +20,10 @@
 #ifndef PUSB_h
 #define PUSB_h
 
+#if defined(USBCON)
+
 #include "USBAPI.h"
 #include <stdint.h>
-
-#if defined(USBCON)
 
 class PluggableUSBModule {
 public:

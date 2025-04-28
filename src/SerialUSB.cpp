@@ -15,6 +15,7 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#ifdef USBCON
 
 #include <Arduino.h>
 #include "SerialUSB.h"
@@ -341,3 +342,5 @@ bool SerialUSB_::rts()
 {
 	return ((_usbLineInfo.lineState & CDC_LINESTATE_RTS) == CDC_LINESTATE_RTS);
 }
+
+#endif /* USBCON */

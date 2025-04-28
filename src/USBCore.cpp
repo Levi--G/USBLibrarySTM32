@@ -21,7 +21,6 @@
  */
 
 #ifdef USBCON
-#ifdef USBCON
 
 /* Includes ------------------------------------------------------------------*/
 #include "Arduino.h"
@@ -88,8 +87,8 @@ uint8_t tempdescbufferpos = 0;
 bool descBufferMode = false;
 
 /* RX buffers */
-PacketBuffer *RX_Buffers[USB_ENDPOINTS];
-bool RX_Buffer_Pending[USB_ENDPOINTS];
+PacketBuffer *RX_Buffers[USB_MAX_EPS];
+bool RX_Buffer_Pending[USB_MAX_EPS];
 uint16_t Recv_EP0 = false;
 USBD_SetupReqTypedef EP0Setup;
 
@@ -189,7 +188,6 @@ int USB_Send(uint8_t endp, const void *data, int len)
   USBD_HID_HandleTypeDef *hhid;
   if (GetHHID(hhid))
   {
-    // USB_Flush(endp);
     int ret = USB_SendQuick(endp, data, len);
     // USB_Send is blocking in the original avr implementation
     USB_Flush(endp);
@@ -328,6 +326,8 @@ static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev,
     pdev->pClassData = NULL;
     return (uint8_t)USBD_EMEM;
   }
+  
+  (void)USBD_memset(hhid, 0, sizeof(USBD_HID_HandleTypeDef));
 
   pdev->pClassData = (void *)hhid;
 
@@ -339,17 +339,17 @@ static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev,
     {
       uint8_t EP = ep_def[i].ep_num;
       uint8_t ep = SMALL_EP(EP);
-      USBD_EndpointTypeDef *epdef = GetEPTypeDef(EP, IS_IN_EP(EP));
+      USBD_EndpointTypeDef *eptdef = GetEPTypeDef(EP, IS_IN_EP(EP));
       if (pdev->dev_speed == USBD_SPEED_HIGH)
       {
-        epdef->bInterval = HID_HS_BINTERVAL;
+        eptdef->bInterval = HID_HS_BINTERVAL;
       }
       else
       {
-        epdef->bInterval = HID_FS_BINTERVAL;
+        eptdef->bInterval = HID_FS_BINTERVAL;
       }
       USBD_LL_OpenEP(pdev, EP, ep_def[ep].ep_type & USB_ENDPOINT_TYPE_MASK, ep_def[ep].ep_size);
-      epdef->is_used = 1U;
+      eptdef->is_used = 1U;
       if (IS_IN_EP(EP))
       {
         hhid->TXstate[ep] = HID_IDLE;
@@ -704,6 +704,5 @@ static uint8_t *USBD_HID_GetDeviceQualifierDesc(uint16_t *length)
   *length = (uint16_t)sizeof(USBD_HID_DeviceQualifierDesc);
   return USBD_HID_DeviceQualifierDesc;
 }
-#endif /* USBD_USE_HID_COMPOSITE */
 #endif /* USBCON */
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
