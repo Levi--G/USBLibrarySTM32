@@ -2,7 +2,7 @@
 
 [![PlatformIO Registry](https://badges.registry.platformio.org/packages/levi--g/library/USBLibrarySTM32.svg)](https://registry.platformio.org/libraries/levi--g/USBLibrarySTM32)
 
-This library adds a very basic implementation of the original AVR Arduino USB API to make existing libraries compatible with stm32 boards running the STM32Duino core. Caution, this library is very beta and most likely not suited for production code unless you make sure to test it thoroughly!
+This library adds a very basic implementation of the original AVR Arduino USB API to make existing libraries compatible with stm32 boards. Caution, this library is only tested on a limited number of boards and libraries, please create an issue on the project github if you encounter issues!
 
 STM32F103 is currently working with only minor bugs and STM32F4xx support is being worked on. The goal is to eventually get all 5 usb implementations of STM32 working and to merge it back into the main STM32duino core.
 
@@ -40,26 +40,13 @@ On these boards:
 
 ## Installation Instructions per project
 
-- Include the library via [platformio](https://registry.platformio.org/libraries/levi--g/USBLibrarySTM32) or Arduino IDE
+- Include the library via [platformio](https://registry.platformio.org/libraries/levi--g/USBLibrarySTM32) or Arduino IDE "USBLibrarySTM32"
 - Add `-D USBCON` and `-D HAL_PCD_MODULE_ENABLED` to your build flags
 - Initialise Keyboard/Mouse/Serial
 - Call `USB_Begin();` in your Setup
 - Optionally also call `while (!USB_Running()){ delay(50); }` in your setup if you want to wait until the device actually has an usb connection, otherwise make sure to check `USB_Running()` before calling any usb methods!
 - Initialise joystick library
 - Do **NOT** include the builtin usb-composite Keyboard or mouse libraries, if you want to use mouse or keyboard include the [Arduino libraries](https://registry.platformio.org/libraries/arduino-libraries/Mouse) instead
-
-## Installation in core one-time (mandatory)
-
-Warning, this is needed to use this library but will change the core to not use the builtin usb library anymore, this means any existing projects cant use usbcomposite until you uninstall again
-
-- Go to `%USERPROFILE%\.platformio\packages\framework-arduinoststm32\cores\arduino\stm32\usb`
-- Delete all files in the folder
-- Download [usbd_conf.h](https://github.com/Levi--G/USBLibrarySTM32/raw/main/include/usbd_conf.h), [usbd_desc.h](https://github.com/Levi--G/USBLibrarySTM32/raw/main/include/usbd_desc.h), [usbd_ep_conf.h](https://github.com/Levi--G/USBLibrarySTM32/raw/main/include/usbd_ep_conf.h) and [usbd_if.h](https://github.com/Levi--G/USBLibrarySTM32/raw/main/include/usbd_if.h)
-- Place the 4 files in the usb directory
-
-## Uninstallation from core
-
-To revert the previous changes just delete the entire `%USERPROFILE%\.platformio\packages\framework-arduinoststm32` folder, platformio will download a new one and it will ensure everything is back to default.
 
 ## Examples
 
