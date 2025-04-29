@@ -19,11 +19,11 @@
 #ifndef HID_h
 #define HID_h
 
+#if defined(USBCON)
+
 #include <stdint.h>
 #include <Arduino.h>
 #include "PluggableUSB.h"
-
-#if defined(USBCON)
 
 #define _USING_HID
 
