@@ -35,40 +35,38 @@ extern "C"
 #define IN_EP(Ep) (lowByte((Ep) | 0x80))
 #define IS_IN_EP(Ep) ((Ep | 0x80) == 0x80)
 
-#ifndef PCD_SNG_BUF
-#define PCD_SNG_BUF 0U
-#define PCD_DBL_BUF 1U
+// Can override default buffer by defining PCD_DEF_BUF globally
+#ifndef PCD_USE_DBL_BUF
+#define PCD_USE_DBL_BUF 0
 #endif
 
-// Can override default buffer by defining PCD_DEF_BUF globally
 #ifndef PCD_DEF_BUF
-#if defined(USB_OTG_FS)
+#if PCD_USE_DBL_BUF
 #define PCD_DEF_BUF PCD_DBL_BUF
 #else
 #define PCD_DEF_BUF PCD_SNG_BUF
 #endif
 #endif
 
+#define USB_ABS_EP0_SIZE (PCD_USE_DBL_BUF ? USB_EP0_SIZE * 2 : USB_EP0_SIZE)
+#define USB_ABS_EP_SIZE (PCD_USE_DBL_BUF ? USB_EP_SIZE * 2 : USB_EP_SIZE)
+
   typedef struct
   {
     uint32_t ep_num;  /* Endpoint number+direction */
     uint32_t ep_type; /* Endpoint type */
-    uint32_t ep_size; /* Endpoint size */
-    uint32_t ep_kind; /* PCD Endpoint Kind: PCD_SNG_BUF or PCD_DBL_BUF */
   } ep_desc_t;
 
-#define PMA_BASE_ADDR 0x40 // 4*uint16*max EP
+#define PMA_BASE_ADDR (4 * 2 * USB_MAX_EPS)
 #ifndef PMA_MAX_SIZE
 #define PMA_MAX_SIZE (512 - PMA_BASE_ADDR)
 #endif
 
-  extern ep_desc_t ep_def[USB_MAX_EPS_SLOTS];
-
-  uint8_t USB_PMA_GetNumEndpoints();
-  uint8_t USB_PMA_GetNumEndpointsSlots();
-  uint32_t USB_PMA_GetNextEndpoint();
-  uint8_t USB_PMA_GetNextEndpointSlot();
-  int USB_PMA_GetEndpointsSize();
+  void USB_EP_ClearEndpoints();
+  uint8_t USB_EP_AddEndpoint(uint32_t ep_type);
+  uint8_t USB_EP_GetNumEndpoints();
+  uint8_t USB_EP_GetNumEndpointsSlots();
+  const ep_desc_t *USB_EP_GetEndpointsSlots();
 
 #ifdef __cplusplus
 }

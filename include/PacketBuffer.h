@@ -19,8 +19,8 @@
 template <int size>
 struct USBD_HID_BufferItem
 {
-	uint8_t len;
-	uint8_t pos;
+	uint8_t len = 0;
+	uint8_t pos = 0;
 	uint8_t buf[size];
 
 	uint8_t Read(uint8_t *data, uint8_t length)
@@ -40,6 +40,11 @@ struct USBD_HID_BufferItem
 	bool Empty()
 	{
 		return Remaining() <= 0;
+	}
+	void Clear()
+	{
+		len = 0;
+		pos = 0;
 	}
 };
 
@@ -103,12 +108,16 @@ public:
 		count = 0;
 		head = buffer;
 		tail = buffer;
+		for (size_t i = 0; i < capacity; i++)
+		{
+			buffer[i].Clear();
+		}
 	}
 	uint16_t totalBytesAvailable()
 	{
 		uint16_t total = 0;
 		auto ptr = read();
-		for (size_t i = 0; i < size(); i++)
+		for (size_t i = 0; i < count; i++)
 		{
 			total += ptr->Remaining();
 			ptr = nextPtr(ptr);

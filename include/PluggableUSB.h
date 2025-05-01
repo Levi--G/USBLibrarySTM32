@@ -25,17 +25,22 @@
 #include "USBAPI.h"
 #include <stdint.h>
 
-class PluggableUSBModule {
+class PluggableUSBModule
+{
 public:
-  PluggableUSBModule(uint8_t numEps, uint8_t numIfs, uint8_t *epType) :
-    numEndpoints(numEps), numInterfaces(numIfs), endpointType(epType)
-  { }
+  PluggableUSBModule(uint8_t numEps, uint8_t numIfs, uint8_t *epType) : numEndpoints(numEps), numInterfaces(numIfs), endpointType(epType), pluggedEndpoint(1)
+  {
+  }
 
 protected:
-  virtual bool setup(USBSetup& setup) = 0;
-  virtual int getInterface(uint8_t* interfaceCount) = 0;
-  virtual int getDescriptor(USBSetup& setup) = 0;
-  virtual uint8_t getShortName(char *name) { name[0] = 'A'+pluggedInterface; return 1; }
+  virtual bool setup(USBSetup &setup) = 0;
+  virtual int getInterface(uint8_t *interfaceCount) = 0;
+  virtual int getDescriptor(USBSetup &setup) = 0;
+  virtual uint8_t getShortName(char *name)
+  {
+    name[0] = 'A' + pluggedInterface;
+    return 1;
+  }
 
   uint8_t pluggedInterface;
   uint8_t pluggedEndpoint;
@@ -44,30 +49,65 @@ protected:
   const uint8_t numInterfaces;
   const uint8_t *endpointType;
 
+  virtual uint8_t getNumEndpoints()
+  {
+    return numEndpoints;
+  }
+
+  virtual uint8_t getNumInterfaces()
+  {
+    return numInterfaces;
+  }
+
+  virtual uint8_t getEndpointTypes(uint8_t *types)
+  {
+    for (size_t i = 0; i < numEndpoints; i++)
+    {
+      types[i] = endpointType[i];
+    }
+    return numEndpoints;
+  }
+
   PluggableUSBModule *next = NULL;
 
   friend class PluggableUSB_;
+  friend int PLUG_GetInterface(uint8_t *interfaceCount);
+  friend int PLUG_GetDescriptor(USBSetup &setup);
+  friend bool PLUG_Setup(USBSetup &setup);
+  friend uint8_t PLUG_GetNumEndpoints();
+  friend uint8_t PLUG_GetNumInterfaces();
+  friend uint8_t PLUG_GetEndpointTypes(uint8_t *types);
 };
 
-class PluggableUSB_ {
+class PluggableUSB_ : PluggableUSBModule
+{
 public:
   PluggableUSB_();
   bool plug(PluggableUSBModule *node);
-  int getInterface(uint8_t* interfaceCount);
-  int getDescriptor(USBSetup& setup);
-  bool setup(USBSetup& setup);
-  void getShortName(char *iSerialNum);
+  int getInterface(uint8_t *interfaceCount);
+  int getDescriptor(USBSetup &setup);
+  bool setup(USBSetup &setup);
+  uint8_t getShortName(char *name);
+
+protected:
+  virtual uint8_t getNumEndpoints();
+  virtual uint8_t getNumInterfaces();
+  virtual uint8_t getEndpointTypes(uint8_t *types);
 
 private:
   uint8_t lastIf;
   uint8_t lastEp;
-  PluggableUSBModule* rootNode;
+  PluggableUSBModule *rootNode;
 };
 
 // Replacement for global singleton.
 // This function prevents static-initialization-order-fiasco
 // https://isocpp.org/wiki/faq/ctors#static-init-order-on-first-use
-PluggableUSB_& PluggableUSB();
+PluggableUSB_ &PluggableUSB();
+
+/// @brief Allows installing a single pluggable module without the overhead of multiple module support
+/// @param root The module to install, will replace any already present
+void USB_PlugRoot(PluggableUSBModule *root);
 
 #endif
 

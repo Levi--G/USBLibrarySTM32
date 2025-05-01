@@ -105,17 +105,6 @@
 //  #define USB_CONFIG_POWER                      (100)
 #endif
 
-// bEndpointAddress in Endpoint Descriptor
-#define USB_ENDPOINT_DIRECTION_MASK            0x80
-#define USB_ENDPOINT_OUT(addr)                 (lowByte((addr) | 0x00))
-#define USB_ENDPOINT_IN(addr)                  (lowByte((addr) | 0x80))
-
-#define USB_ENDPOINT_TYPE_MASK                 0x03
-#define USB_ENDPOINT_TYPE_CONTROL              0x00
-#define USB_ENDPOINT_TYPE_ISOCHRONOUS          0x01
-#define USB_ENDPOINT_TYPE_BULK                 0x02
-#define USB_ENDPOINT_TYPE_INTERRUPT            0x03
-
 //	Device
 typedef struct {
 	u8 len;				// 18

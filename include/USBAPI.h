@@ -33,9 +33,7 @@ typedef unsigned long u32;
 
 #if defined(USBCON)
 
-// #include "USBDesc.h"
 #include "USBCore.h"
-// #include "usbd_def.h"
 
 //================================================================================
 //================================================================================
@@ -81,9 +79,17 @@ bool USB_SendAvailable(uint8_t ep);
 int USB_Recv(uint8_t ep, void* data, int len);		// non-blocking
 int USB_Recv(uint8_t ep);	// non-blocking
 void USB_Flush(uint8_t ep);
-void USB_Begin();
+bool USB_Begin();
 bool USB_Running();
 void USB_End();
+
+// for pluggableusb support
+int PLUG_GetInterface(uint8_t* interfaceCount);
+int PLUG_GetDescriptor(USBSetup& setup);
+bool PLUG_Setup(USBSetup& setup);
+uint8_t PLUG_GetNumEndpoints();
+uint8_t PLUG_GetNumInterfaces();
+uint8_t PLUG_GetEndpointTypes(uint8_t *types);
 
 #endif
 
