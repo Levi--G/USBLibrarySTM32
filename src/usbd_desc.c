@@ -25,6 +25,7 @@
 #include "usbd_desc.h"
 #include "utils.h"
 #include <variant.h>
+#include "USBEP.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -127,7 +128,7 @@ __ALIGN_BEGIN uint8_t USBD_Class_DeviceDesc[USB_LEN_DEV_DESC] __ALIGN_END = {
     0x00,             /* bDeviceClass */
     0x00,             /* bDeviceSubClass */
     0x00,             /* bDeviceProtocol */
-    USB_MAX_EP0_SIZE, /* bMaxPacketSize */
+    USB_EP0_SIZE, /* bMaxPacketSize */
     LOBYTE(USBD_VID), /* idVendor */
     HIBYTE(USBD_VID), /* idVendor */
     LOBYTE(USBD_PID), /* idProduct */

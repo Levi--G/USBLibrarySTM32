@@ -3,14 +3,25 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define PACKETBUFFER_SIZE 64
-#define PACKETBUFFER_COUNT 3
+#ifndef EP0_PACKETBUFFER_COUNT
+#define EP0_PACKETBUFFER_COUNT 3
+#endif
 
-typedef struct
+// Packetbuffer count determines the buffer size, this can be lowered to save ram, but more missed data may occur
+#ifndef PACKETBUFFER_COUNT
+#define PACKETBUFFER_COUNT 3
+#endif
+
+#ifndef PACKETBUFFER_ALLOW_OVERWRITE
+#define PACKETBUFFER_ALLOW_OVERWRITE true
+#endif
+
+template <int size>
+struct USBD_HID_BufferItem
 {
 	uint8_t len;
 	uint8_t pos;
-	uint8_t buf[PACKETBUFFER_SIZE];
+	uint8_t buf[size];
 
 	uint8_t Read(uint8_t *data, uint8_t length)
 	{
@@ -30,13 +41,13 @@ typedef struct
 	{
 		return Remaining() <= 0;
 	}
-} USBD_HID_BufferItem;
+};
 
+template <int buffersize, int capacity>
 class PacketBuffer
 {
 public:
-	static constexpr uint8_t capacity = PACKETBUFFER_COUNT;
-	USBD_HID_BufferItem *reserve()
+	USBD_HID_BufferItem<buffersize> *reserve()
 	{
 		auto result = newTail();
 		if (count == capacity)
@@ -50,7 +61,7 @@ public:
 		tail = newTail();
 		if (count == capacity)
 		{
-			//should not happen but you never know
+			// should not happen but you never know
 			shift();
 		}
 		else if (count++ == 0)
@@ -58,11 +69,11 @@ public:
 			head = tail;
 		}
 	}
-	USBD_HID_BufferItem *read()
+	USBD_HID_BufferItem<buffersize> *read()
 	{
 		return head;
 	}
-	USBD_HID_BufferItem *shift()
+	USBD_HID_BufferItem<buffersize> *shift()
 	{
 		if (count <= 0)
 			return head;
@@ -104,21 +115,25 @@ public:
 		}
 		return total;
 	}
+	uint16_t nextPacketSize()
+	{
+		return read()->Remaining();
+	}
 
 private:
-	USBD_HID_BufferItem buffer[capacity];
-	USBD_HID_BufferItem *head = buffer;
-	USBD_HID_BufferItem *tail = buffer;
+	USBD_HID_BufferItem<buffersize> buffer[capacity];
+	USBD_HID_BufferItem<buffersize> *head = buffer;
+	USBD_HID_BufferItem<buffersize> *tail = buffer;
 	uint8_t count = 0;
-	USBD_HID_BufferItem *newHead()
+	USBD_HID_BufferItem<buffersize> *newHead()
 	{
 		return nextPtr(head);
 	}
-	USBD_HID_BufferItem *newTail()
+	USBD_HID_BufferItem<buffersize> *newTail()
 	{
 		return nextPtr(tail);
 	}
-	USBD_HID_BufferItem *nextPtr(USBD_HID_BufferItem *current)
+	USBD_HID_BufferItem<buffersize> *nextPtr(USBD_HID_BufferItem<buffersize> *current)
 	{
 		auto result = current + 1;
 		if (result >= buffer + capacity)
@@ -129,4 +144,4 @@ private:
 	}
 };
 
-#endif //PACKET_BUFFER_H_
+#endif // PACKET_BUFFER_H_

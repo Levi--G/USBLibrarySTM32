@@ -27,14 +27,7 @@ typedef unsigned short u16;
 typedef unsigned long u32;
 
 #include "Arduino.h"
-
-#define USB_ENDPOINTS 8
-
-// This definitions is usefull if you want to reduce the EP_SIZE to 16
-// at the moment only 64 and 16 as EP_SIZE for all EPs are supported except the control endpoint
-#ifndef USB_EP_SIZE
-#define USB_EP_SIZE 64
-#endif
+#include "USBEP.h"
 
 #define EPX_SIZE USB_EP_SIZE
 
@@ -79,7 +72,6 @@ typedef struct
 
 int USB_SendControl(uint8_t flags, const void* d, int len);
 int USB_RecvControl(void* d, int len);
-//int USB_RecvControlLong(void* d, int len); // not implemented in original avr core
 uint8_t	USB_Available(uint8_t ep);
 uint8_t USB_SendSpace(uint8_t ep);
 int USB_SendZLP(uint8_t ep);	// blocking

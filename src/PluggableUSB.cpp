@@ -75,7 +75,7 @@ bool PluggableUSB_::setup(USBSetup &setup)
 
 bool PluggableUSB_::plug(PluggableUSBModule *node)
 {
-	if ((lastEp + node->numEndpoints) > USB_ENDPOINTS || (USB_PMA_GetEndpointsSize() + (USB_EP_SIZE * node->numEndpoints)) > PMA_MAX_SIZE)
+	if ((lastEp + node->numEndpoints) > USB_MAX_EPS || (USB_PMA_GetEndpointsSize() + (USB_EP_SIZE * node->numEndpoints)) > PMA_MAX_SIZE)
 	{
 		return false;
 	}
@@ -103,7 +103,6 @@ bool PluggableUSB_::plug(PluggableUSBModule *node)
 		uint32_t ep = USB_PMA_GetNextEndpoint();
 		if (slot)
 		{
-			//_initEndpoints[lastEp] = node->endpointType[i];
 			uint8_t type = node->endpointType[i];
 			ep_def[slot] = {ep | (type & (uint32_t)USB_ENDPOINT_DIRECTION_MASK), (type & (uint32_t)USB_ENDPOINT_TYPE_MASK), USB_EP_SIZE, PCD_DEF_BUF};
 			lastEp++;
