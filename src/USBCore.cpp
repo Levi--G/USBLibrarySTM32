@@ -44,7 +44,7 @@ static uint8_t USBD_HID_EP0_RxReady(USBD_HandleTypeDef *pdev);
 static uint8_t USBD_HID_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum);
 static uint8_t USBD_HID_DataOut(USBD_HandleTypeDef *pdev, uint8_t endp);
 
-bool PrepareReceive(USBD_HandleTypeDef *pdev, uint8_t endp);
+static bool PrepareReceive(USBD_HandleTypeDef *pdev, uint8_t endp);
 
 USBD_ClassTypeDef USBD_HID_CLASS = {
     USBD_HID_Init,
@@ -347,11 +347,11 @@ int USB_Recv(uint8_t endp, void *data, int len)
     return 0;
   }
   uint8_t ep = SMALL_EP(endp);
-  auto buffer = RX_Buffers[ep];
   if (ep == 0)
   {
-    buffer = EP0_RX_Buffer;
+    return USB_RecvControl(data, len);
   }
+  auto buffer = RX_Buffers[ep];
   if (buffer == NULL)
   {
     return 0;
@@ -364,10 +364,7 @@ int USB_Recv(uint8_t endp, void *data, int len)
     if (buf->Empty())
     {
       buffer->shift();
-      if (ep != 0)
-      {
-        PrepareReceive(&hUSBD_Device_HID_Handle, ep);
-      }
+      PrepareReceive(&hUSBD_Device_HID_Handle, ep);
     }
   }
   return read;
@@ -383,7 +380,26 @@ int USB_Recv(uint8_t endp)
 
 int USB_RecvControl(void *data, int len)
 {
-  return USB_Recv(0, data, len);
+  if (len <= 0)
+  {
+    return 0;
+  }
+  auto buffer = EP0_RX_Buffer;
+  if (buffer == NULL)
+  {
+    return 0;
+  }
+  int read = 0;
+  if (buffer->size())
+  {
+    auto buf = buffer->read();
+    read = buf->Read((uint8_t *)data, len);
+    if (buf->Empty())
+    {
+      buffer->shift();
+    }
+  }
+  return read;
 }
 
 /**
@@ -768,16 +784,16 @@ static uint8_t USBD_HID_DataOut(USBD_HandleTypeDef *pdev, uint8_t endp)
 }
 
 /// @param ep SMALL_EP(endp)
-bool PrepareReceive(USBD_HandleTypeDef *pdev, uint8_t ep)
+static bool PrepareReceive(USBD_HandleTypeDef *pdev, uint8_t ep)
 {
-  if (RX_Buffer_Pending[ep])
-  {
-    return false;
-  }
   if (ep == 0)
   {
     // this should never happen
     return false;
+  }
+  if (RX_Buffer_Pending[ep])
+  {
+    return true;
   }
 #if !PACKETBUFFER_ALLOW_OVERWRITE
   if (!RX_Buffers[ep]->available())
