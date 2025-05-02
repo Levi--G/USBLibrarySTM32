@@ -75,6 +75,7 @@ class SerialUSB_ : public Stream, public PluggableUSBModule
 {
 public:
 	SerialUSB_();
+	void begin() {}
 	void begin(uint32_t baud_count);
 	void begin(unsigned long, uint8_t);
 	void end(void);

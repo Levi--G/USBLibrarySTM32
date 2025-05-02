@@ -35,7 +35,6 @@ extern "C"
 #define IN_EP(Ep) (lowByte((Ep) | 0x80))
 #define IS_IN_EP(Ep) ((Ep | 0x80) == 0x80)
 
-// Can override default buffer by defining PCD_DEF_BUF globally
 #ifndef PCD_USE_DBL_BUF
 #define PCD_USE_DBL_BUF 0
 #endif

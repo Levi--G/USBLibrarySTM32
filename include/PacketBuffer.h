@@ -2,28 +2,37 @@
 #define PACKET_BUFFER_H_
 #include <stdint.h>
 #include <stddef.h>
+#include "USBOptions.h"
 
-#ifndef EP0_PACKETBUFFER_COUNT
-#define EP0_PACKETBUFFER_COUNT 3
+#if PACKETBUFFER_COUNT < 2
+#warning "PacketBuffer is likely too small, expect issues"
 #endif
 
-// Packetbuffer count determines the buffer size, this can be lowered to save ram, but more missed data may occur
-#ifndef PACKETBUFFER_COUNT
-#define PACKETBUFFER_COUNT 3
-#endif
+class PacketBuffer
+{
+public:
+	virtual uint8_t *PrepareWrite(uint32_t &len) = 0;
+	virtual void CommitWrite(uint32_t len) = 0;
+	virtual uint8_t *PrepareRead(uint32_t &len) = 0;
+	virtual void CommitRead(uint32_t len) = 0;
+	virtual uint32_t Read(uint8_t *data, uint32_t len) = 0;
+	virtual uint32_t Write(uint8_t *data, uint32_t len) = 0;
+	virtual bool isEmpty() = 0;
+	virtual bool isFull() = 0;
+	virtual void clear() = 0;
+	virtual uint32_t available() = 0;
+	virtual uint32_t availableToWrite() = 0;
+	virtual ~PacketBuffer() = default;
+};
 
-#ifndef PACKETBUFFER_ALLOW_OVERWRITE
-#define PACKETBUFFER_ALLOW_OVERWRITE true
-#endif
-
-template <int size>
+template <uint32_t size>
 struct USBD_HID_BufferItem
 {
-	uint8_t len = 0;
-	uint8_t pos = 0;
+	uint32_t len = 0;
+	uint32_t pos = 0;
 	uint8_t buf[size];
 
-	uint8_t Read(uint8_t *data, uint8_t length)
+	uint32_t Read(uint8_t *data, uint32_t length)
 	{
 		uint8_t read = min(Remaining(), length);
 		if (read)
@@ -33,7 +42,18 @@ struct USBD_HID_BufferItem
 		}
 		return read;
 	}
-	uint8_t Remaining()
+	uint32_t Write(uint8_t *data, uint32_t length)
+	{
+		uint8_t write = min(size, length);
+		if (write)
+		{
+			memcpy(data, buf, write);
+			len = write;
+			pos = 0;
+		}
+		return write;
+	}
+	uint32_t Remaining()
 	{
 		return len - pos;
 	}
@@ -46,108 +66,157 @@ struct USBD_HID_BufferItem
 		len = 0;
 		pos = 0;
 	}
+	void WriteLength(uint32_t length)
+	{
+		len = length;
+		pos = 0;
+	}
+	void ReadLength(uint32_t length)
+	{
+		pos = min(pos + length, size);
+	}
 };
 
-template <int buffersize, int capacity>
-class PacketBuffer
+template <uint32_t buffersize, uint32_t capacity>
+class SplitPacketBuffer : public PacketBuffer
 {
 public:
-	USBD_HID_BufferItem<buffersize> *reserve()
+	virtual uint8_t *PrepareWrite(uint32_t &len)
 	{
-		auto result = newTail();
-		if (count == capacity)
+		if (writeHead == readHead)
 		{
-			shift();
+			// overwrite last
+			writeHead = prevUnsafeHead(writeHead);
 		}
-		return result;
+		len = min(buffersize, len);
+		return buffer[writeHead].buf;
 	}
-	void commit()
+	virtual void CommitWrite(uint32_t len)
 	{
-		tail = newTail();
-		if (count == capacity)
+		buffer[writeHead].WriteLength(len);
+		writeHead = newWriteHead();
+	}
+	virtual uint8_t *PrepareRead(uint32_t &len)
+	{
+		if (!buffer[readHead].Remaining())
 		{
-			// should not happen but you never know
-			shift();
+			readHead = nextUnsafeHead(readHead);
 		}
-		else if (count++ == 0)
+		len = min(len, buffer[readHead].Remaining());
+		return buffer[readHead].buf;
+	}
+	virtual void CommitRead(uint32_t len)
+	{
+		buffer[readHead].ReadLength(len);
+		if (buffer[readHead].Empty())
 		{
-			head = tail;
+			readHead = newReadHead();
 		}
 	}
-	USBD_HID_BufferItem<buffersize> *read()
+	uint32_t Read(uint8_t *data, uint32_t len)
 	{
-		return head;
+		if (!buffer[readHead].Remaining())
+		{
+			readHead = nextUnsafeHead(readHead);
+		}
+		uint32_t read = 0;
+		if (buffer[readHead].Remaining())
+		{
+			read = buffer[readHead].Read(data, len);
+			if (buffer[readHead].Empty())
+			{
+				readHead = newReadHead();
+			}
+		}
+		return read;
 	}
-	USBD_HID_BufferItem<buffersize> *shift()
+	virtual uint32_t Write(uint8_t *data, uint32_t len)
 	{
-		if (count <= 0)
-			return head;
-		auto result = head;
-		head = newHead();
-		count--;
-		return result;
+		uint32_t write = 0;
+		if (writeHead == readHead)
+		{
+			// overwrite last
+			writeHead = prevUnsafeHead(writeHead);
+		}
+		write = buffer[writeHead].Write(data, len);
+		writeHead = newWriteHead();
+		return write;
 	}
-	uint8_t size()
+	virtual bool isEmpty()
 	{
-		return count;
+		return available() == 0;
 	}
-	uint8_t available()
+	virtual bool isFull()
 	{
-		return capacity - count;
-	}
-	bool isEmpty()
-	{
-		return count == 0;
-	}
-	bool isFull()
-	{
-		return count == capacity;
+		return readHead == writeHead;
 	}
 	void clear()
 	{
-		count = 0;
-		head = buffer;
-		tail = buffer;
-		for (size_t i = 0; i < capacity; i++)
-		{
-			buffer[i].Clear();
-		}
+		readHead = 0;
+		writeHead = 1;
 	}
-	uint16_t totalBytesAvailable()
+	virtual uint32_t available()
 	{
-		uint16_t total = 0;
-		auto ptr = read();
-		for (size_t i = 0; i < count; i++)
+		if (!buffer[readHead].Remaining())
 		{
-			total += ptr->Remaining();
-			ptr = nextPtr(ptr);
+			readHead = nextUnsafeHead(readHead);
+		}
+		return getAvailable(readHead, writeHead);
+	}
+	virtual uint32_t availableToWrite()
+	{
+		return readHead == writeHead ? 0 : capacity;
+	}
+
+	uint32_t getAvailable(int head, int otherhead)
+	{
+#if PACKETBUFFER_USE_FAST_AVAILABLE
+		return buffer[head].Remaining();
+#else
+		uint32_t16_t total = 0;
+		auto ptr = head;
+		auto endptr = otherhead;
+		for (size_t i = 0; i != endptr; i++)
+		{
+			total += buffer[i].Remaining();
+			i = newUnsafeHead(ptr);
 		}
 		return total;
-	}
-	uint16_t nextPacketSize()
-	{
-		return read()->Remaining();
+#endif
 	}
 
 private:
 	USBD_HID_BufferItem<buffersize> buffer[capacity];
-	USBD_HID_BufferItem<buffersize> *head = buffer;
-	USBD_HID_BufferItem<buffersize> *tail = buffer;
-	uint8_t count = 0;
-	USBD_HID_BufferItem<buffersize> *newHead()
+	int readHead = 0;
+	int writeHead = 0;
+	int newReadHead()
 	{
-		return nextPtr(head);
+		auto result = nextUnsafeHead(readHead);
+		if (result == writeHead)
+		{
+			return readHead;
+		}
+		return result;
 	}
-	USBD_HID_BufferItem<buffersize> *newTail()
+	int newWriteHead()
 	{
-		return nextPtr(tail);
+		return nextUnsafeHead(writeHead);
 	}
-	USBD_HID_BufferItem<buffersize> *nextPtr(USBD_HID_BufferItem<buffersize> *current)
+	int nextUnsafeHead(int current)
 	{
 		auto result = current + 1;
-		if (result >= buffer + capacity)
+		if (result >= capacity)
 		{
-			result = buffer;
+			result = 0;
+		}
+		return result;
+	}
+	int prevUnsafeHead(int current)
+	{
+		auto result = current - 1;
+		if (result < 0)
+		{
+			result = capacity - 1;
 		}
 		return result;
 	}

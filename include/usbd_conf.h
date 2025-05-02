@@ -89,7 +89,7 @@ extern "C" {
 #endif
 
 #ifndef USBD_MAX_NUM_INTERFACES
-#define USBD_MAX_NUM_INTERFACES                     2U
+#define USBD_MAX_NUM_INTERFACES                     5U
 #endif /* USBD_MAX_NUM_INTERFACES */
 
 #ifndef USBD_MAX_NUM_CONFIGURATION
@@ -117,119 +117,6 @@ extern "C" {
 #ifndef USBD_CLASS_USER_STRING_DESC
 #define USBD_CLASS_USER_STRING_DESC                 1U
 #endif /* USBD_CLASS_USER_STRING_DESC */
-
-#ifndef USBD_CLASS_BOS_ENABLED
-#define USBD_CLASS_BOS_ENABLED                      0U
-#endif /* USBD_CLASS_BOS_ENABLED */
-
-#ifndef USB_BB_MAX_NUM_ALT_MODE
-#define USB_BB_MAX_NUM_ALT_MODE                     0x2U
-#endif /* USB_BB_MAX_NUM_ALT_MODE */
-
-/* MSC Class Config */
-#ifndef MSC_MEDIA_PACKET
-#define MSC_MEDIA_PACKET                            8192U
-#endif /* MSC_MEDIA_PACKET */
-
-/* CDC Class Config */
-#ifndef USBD_CDC_INTERVAL
-#define USBD_CDC_INTERVAL                           2000U
-#endif /* USBD_CDC_INTERVAL */
-
-/* DFU Class Config */
-#ifndef USBD_DFU_MAX_ITF_NUM
-#define USBD_DFU_MAX_ITF_NUM                        1U
-#endif /* USBD_DFU_MAX_ITF_NUM */
-#ifndef USBD_DFU_XFERS_IZE
-#define USBD_DFU_XFERS_IZE                          1024U
-#endif /* USBD_DFU_XFERS_IZE */
-
-/* AUDIO Class Config */
-#ifndef USBD_AUDIO_FREQ
-#define USBD_AUDIO_FREQ                             22100U
-#endif /* USBD_AUDIO_FREQ */
-
-/* CustomHID Class Config */
-#ifndef CUSTOM_HID_HS_BINTERVAL
-#define CUSTOM_HID_HS_BINTERVAL                     0x05U
-#endif /* CUSTOM_HID_HS_BINTERVAL */
-#ifndef CUSTOM_HID_FS_BINTERVAL
-#define CUSTOM_HID_FS_BINTERVAL                     0x05U
-#endif /* CUSTOM_HID_FS_BINTERVAL */
-#ifndef USBD_CUSTOMHID_OUTREPORT_BUF_SIZE
-#define USBD_CUSTOMHID_OUTREPORT_BUF_SIZE           0x02U
-#endif /* USBD_CUSTOMHID_OUTREPORT_BUF_SIZE */
-#ifndef USBD_CUSTOM_HID_REPORT_DESC_SIZE
-#define USBD_CUSTOM_HID_REPORT_DESC_SIZE            163U
-#endif /* USBD_CUSTOM_HID_REPORT_DESC_SIZE */
-
-/* VIDEO Class Config */
-#ifndef UVC_1_1
-#define UVC_1_1 /* #define UVC_1_0 */
-#endif /* UVC_1_1 */
-
-/* To be used only with YUY2 and NV12 Video format, shouldn't be defined for MJPEG format */
-#ifndef USBD_UVC_FORMAT_UNCOMPRESSED
-#define USBD_UVC_FORMAT_UNCOMPRESSED
-#endif /* USBD_UVC_FORMAT_UNCOMPRESSED */
-
-#ifdef USBD_UVC_FORMAT_UNCOMPRESSED
-#ifndef UVC_BITS_PER_PIXEL
-#define UVC_BITS_PER_PIXEL                          12U
-#endif /* UVC_BITS_PER_PIXEL */
-#ifndef UVC_UNCOMPRESSED_GUID
-#define UVC_UNCOMPRESSED_GUID                       UVC_GUID_NV12 /* UVC_GUID_YUY2 */
-#endif /* UVC_UNCOMPRESSED_GUID */
-
-/* refer to Table 3-18 Color Matching Descriptor video class v1.1 */
-#ifndef UVC_COLOR_PRIMARIE
-#define UVC_COLOR_PRIMARIE                          0x01U
-#endif /* UVC_COLOR_PRIMARIE */
-#ifndef UVC_TFR_CHARACTERISTICS
-#define UVC_TFR_CHARACTERISTICS                     0x01U
-#endif /* UVC_TFR_CHARACTERISTICS */
-#ifndef UVC_MATRIX_COEFFICIENTS
-#define UVC_MATRIX_COEFFICIENTS                     0x04U
-#endif /* UVC_MATRIX_COEFFICIENTS */
-#endif
-
-/* Video Stream frame width and height */
-#ifndef UVC_WIDTH
-#define UVC_WIDTH                                   176U
-#endif /* UVC_WIDTH */
-#ifndef UVC_HEIGHT
-#define UVC_HEIGHT                                  144U
-#endif /* UVC_HEIGHT */
-
-/* bEndpointAddress in Endpoint Descriptor */
-#ifndef UVC_IN_EP
-#define UVC_IN_EP                                   0x81U
-#endif /* UVC_IN_EP */
-
-#ifndef UVC_CAM_FPS_FS
-#define UVC_CAM_FPS_FS                              10U
-#endif /* UVC_CAM_FPS_FS */
-#ifndef UVC_CAM_FPS_HS
-#define UVC_CAM_FPS_HS                              5U
-#endif /* UVC_CAM_FPS_HS */
-
-#ifndef UVC_ISO_HS_MPS
-#define UVC_ISO_FS_MPS                              512U
-#endif /* UVC_ISO_HS_MPS */
-#ifndef UVC_ISO_HS_MPS
-#define UVC_ISO_HS_MPS                              512U
-#endif /* UVC_ISO_HS_MPS */
-
-#ifndef UVC_PACKET_SIZE
-#define UVC_PACKET_SIZE                             UVC_ISO_FS_MPS
-#endif /* UVC_PACKET_SIZE */
-/* To be used with Device Only IP supporting double buffer mode */
-/* #define UVC_HEADER_PACKET_CNT                     0x02U */
-/* #define UVC_PACKET_SIZE                           (UVC_ISO_FS_MPS * UVC_HEADER_PACKET_CNT) */
-
-#ifndef UVC_MAX_FRAME_SIZE
-#define UVC_MAX_FRAME_SIZE                          (UVC_WIDTH * UVC_HEIGHT * 16U / 8U)
-#endif /* UVC_MAX_FRAME_SIZE */
 
 /* Interrupt priority */
 #ifndef USBD_IRQ_PRIO
