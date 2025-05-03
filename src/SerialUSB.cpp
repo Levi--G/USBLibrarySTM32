@@ -204,9 +204,7 @@ int SerialUSB_::available(void)
 
 int SerialUSB_::availableForWrite(void)
 {
-	// return the number of bytes left in the current bank,
-	// always EP size - 1, because bank is flushed on every write
-	return (EPX_SIZE - 1);
+	return USB_SendAvailable(CDC_ENDPOINT_OUT) ? USB_EP_SIZE : 0;
 }
 
 int SerialUSB_::peek(void)

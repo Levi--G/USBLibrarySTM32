@@ -42,3 +42,14 @@ build_flags =
 // some libraries might not work and not see incoming data
 #define PACKETBUFFER_USE_FAST_AVAILABLE true
 #endif
+
+#ifndef PACKETBUFFER_USE_TX_BUFFERS
+// Adds TX buffers that buffer sent data,
+// this prevents hangs but uses more ram
+#define PACKETBUFFER_USE_TX_BUFFERS true
+#endif
+
+#ifndef USB_WRITE_TIMEOUT
+// Sets a timeout for the USB_Send and USB_Flush function
+#define USB_WRITE_TIMEOUT 100
+#endif

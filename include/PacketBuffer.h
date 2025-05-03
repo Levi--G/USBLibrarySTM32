@@ -47,7 +47,7 @@ struct USBD_HID_BufferItem
 		uint8_t write = min(size, length);
 		if (write)
 		{
-			memcpy(data, buf, write);
+			memcpy(buf, data, write);
 			len = write;
 			pos = 0;
 		}
@@ -83,6 +83,7 @@ class SplitPacketBuffer : public PacketBuffer
 public:
 	virtual uint8_t *PrepareWrite(uint32_t &len)
 	{
+		isPrepared = true;
 		if (writeHead == readHead)
 		{
 			// overwrite last
@@ -93,31 +94,38 @@ public:
 	}
 	virtual void CommitWrite(uint32_t len)
 	{
-		buffer[writeHead].WriteLength(len);
-		writeHead = newWriteHead();
+		if (isPrepared)
+		{
+			buffer[writeHead].WriteLength(len);
+			writeHead = newWriteHead();
+		}
 	}
 	virtual uint8_t *PrepareRead(uint32_t &len)
 	{
+		isPrepared = true;
 		if (!buffer[readHead].Remaining())
 		{
-			readHead = nextUnsafeHead(readHead);
+			readHead = newReadHead();
 		}
 		len = min(len, buffer[readHead].Remaining());
 		return buffer[readHead].buf;
 	}
 	virtual void CommitRead(uint32_t len)
 	{
-		buffer[readHead].ReadLength(len);
-		if (buffer[readHead].Empty())
+		if (isPrepared)
 		{
-			readHead = newReadHead();
+			buffer[readHead].ReadLength(len);
+			if (buffer[readHead].Empty())
+			{
+				readHead = newReadHead();
+			}
 		}
 	}
 	uint32_t Read(uint8_t *data, uint32_t len)
 	{
 		if (!buffer[readHead].Remaining())
 		{
-			readHead = nextUnsafeHead(readHead);
+			readHead = newReadHead();
 		}
 		uint32_t read = 0;
 		if (buffer[readHead].Remaining())
@@ -148,7 +156,11 @@ public:
 	}
 	virtual bool isFull()
 	{
+#if PACKETBUFFER_ALLOW_OVERWRITE
+		return false;
+#else
 		return readHead == writeHead;
+#endif
 	}
 	void clear()
 	{
@@ -159,7 +171,7 @@ public:
 	{
 		if (!buffer[readHead].Remaining())
 		{
-			readHead = nextUnsafeHead(readHead);
+			readHead = newReadHead();
 		}
 		return getAvailable(readHead, writeHead);
 	}
@@ -188,7 +200,8 @@ public:
 private:
 	USBD_HID_BufferItem<buffersize> buffer[capacity];
 	int readHead = 0;
-	int writeHead = 0;
+	int writeHead = 1;
+	bool isPrepared = false;
 	int newReadHead()
 	{
 		auto result = nextUnsafeHead(readHead);

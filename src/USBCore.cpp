@@ -224,29 +224,103 @@ USBD_EndpointTypeDef *GetEPTypeDef(uint8_t ep, bool in)
   return &hUSBD_Device_HID_Handle.ep_out[SMALL_EP(ep)];
 }
 
+static bool USB_SendAvailable_Internal(USBD_HID_HandleTypeDef *&hhid, uint8_t endp)
+{
+  uint8_t ep = SMALL_EP(endp);
+#if PACKETBUFFER_USE_TX_BUFFERS
+  if (EP_Buffers[ep] != NULL && (!EP_Buffers[ep]->isFull() || PACKETBUFFER_ALLOW_OVERWRITE))
+  {
+    return true;
+  }
+#endif
+  return hhid->TXstate[ep] != HID_BUSY;
+}
+
+static bool USB_Flush_Internal(USBD_HID_HandleTypeDef *&hhid, uint8_t endp)
+{
+  if (USB_SendAvailable_Internal(hhid, endp))
+  {
+    return true;
+  }
+  uint8_t ep = SMALL_EP(endp);
+  uint8_t EP = IN_EP(endp);
+#if USB_WRITE_TIMEOUT
+  uint32_t start = millis();
+  while (hhid->TXstate[ep] == HID_BUSY && millis() - start < USB_WRITE_TIMEOUT)
+  {
+    delay(1);
+  }
+#else
+  while (hhid->TXstate[ep] == HID_BUSY)
+  {
+    delay(1);
+  }
+#endif
+  USBD_LL_FlushEP(&hUSBD_Device_HID_Handle, EP);
+  return USB_SendAvailable_Internal(hhid, endp);
+}
+
 bool USB_SendAvailable(uint8_t endp)
 {
   USBD_HID_HandleTypeDef *hhid;
-  return GetHHID(hhid) && hUSBD_Device_HID_Handle.dev_state == USBD_STATE_CONFIGURED && hhid->TXstate[SMALL_EP(endp)] != HID_BUSY;
+  if (!GetHHID(hhid) || hUSBD_Device_HID_Handle.dev_state != USBD_STATE_CONFIGURED)
+  {
+    return false;
+  }
+  return USB_SendAvailable_Internal(hhid, endp);
 }
+
+#if PACKETBUFFER_USE_TX_BUFFERS
+static bool USB_SendTXBufferUnsafe(USBD_HandleTypeDef *pdev, USBD_HID_HandleTypeDef *hhid, uint8_t ep)
+{
+  if (EP_Buffers[ep] && !EP_Buffers[ep]->isEmpty())
+  {
+    hhid->TXstate[ep] = HID_BUSY;
+    uint32_t len = USB_EP_SIZE;
+    auto buf = EP_Buffers[ep]->PrepareRead(len);
+    pdev->ep_in[ep].total_length = len;
+    (void)USBD_LL_Transmit(pdev, ep, buf, len);
+    return true;
+  }
+  return false;
+}
+#endif
 
 int USB_SendQuick(uint8_t endp, const void *data, int len)
 {
   USBD_HID_HandleTypeDef *hhid;
-  USB_Flush(endp);
-  if (USB_SendAvailable(endp) && GetHHID(hhid))
-  {
-    uint8_t ep = SMALL_EP(endp);
-    uint8_t EP = IN_EP(endp);
-    hhid->TXstate[ep] = HID_BUSY;
-    hUSBD_Device_HID_Handle.ep_in[ep].total_length = len;
-    (void)USBD_LL_Transmit(&hUSBD_Device_HID_Handle, EP, (uint8_t *)data, len);
-  }
-  else
+  if (!GetHHID(hhid))
   {
     return 0;
   }
-  return len;
+  if (!USB_SendAvailable_Internal(hhid, endp) && !USB_Flush_Internal(hhid, endp))
+  {
+    return 0;
+  }
+  uint8_t ep = SMALL_EP(endp);
+  uint8_t EP = IN_EP(endp);
+#if PACKETBUFFER_USE_TX_BUFFERS
+  auto buffer = EP_Buffers[ep];
+  if (buffer == NULL)
+  {
+    return 0;
+  }
+  auto write = buffer->Write((uint8_t *)data, len);
+  if (hhid->TXstate[ep] == HID_IDLE)
+  {
+    USB_SendTXBufferUnsafe(&hUSBD_Device_HID_Handle, hhid, ep);
+  }
+  return write;
+#else
+  if (hhid->TXstate[ep] == HID_IDLE)
+  {
+    hhid->TXstate[ep] = HID_BUSY;
+    hUSBD_Device_HID_Handle.ep_in[ep].total_length = len;
+    (void)USBD_LL_Transmit(&hUSBD_Device_HID_Handle, EP, (uint8_t *)data, len);
+    return len;
+  }
+  return 0;
+#endif
 }
 
 int USB_Send(uint8_t endp, const void *data, int len)
@@ -256,7 +330,7 @@ int USB_Send(uint8_t endp, const void *data, int len)
   {
     int ret = USB_SendQuick(endp, data, len);
     // USB_Send is blocking in the original avr implementation
-    USB_Flush(endp);
+    USB_Flush_Internal(hhid, endp);
     return ret;
   }
   return 0;
@@ -313,20 +387,10 @@ int USB_SendZLP(uint8_t endp)
 
 void USB_Flush(uint8_t endp)
 {
-  if (USB_SendAvailable(endp))
-  {
-    return;
-  }
-  uint8_t ep = SMALL_EP(endp);
-  uint8_t EP = IN_EP(endp);
-  USBD_LL_FlushEP(&hUSBD_Device_HID_Handle, EP);
   USBD_HID_HandleTypeDef *hhid;
   if (GetHHID(hhid))
   {
-    while (hhid->TXstate[ep] == HID_BUSY)
-    {
-      delay(1);
-    }
+    USB_Flush_Internal(hhid, endp);
   }
 }
 
@@ -424,6 +488,9 @@ static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev,
     eptdef->is_used = 1U;
     if (IS_IN_EP(EP))
     {
+#if PACKETBUFFER_USE_TX_BUFFERS
+      EP_Buffers[ep] = new SplitPacketBuffer<USB_EP_SIZE, PACKETBUFFER_COUNT>();
+#endif
       hhid->TXstate[ep] = HID_IDLE;
     }
     else
@@ -725,20 +792,35 @@ static uint8_t USBD_HID_DataIn(USBD_HandleTypeDef *pdev,
 
   uint8_t ep = SMALL_EP(endp);
 
-  if ((pdev->ep_in[ep].total_length > 0U) &&
-      ((pdev->ep_in[ep].total_length % pdev->ep_in[ep].maxpacket) == 0U))
+  USBD_HID_HandleTypeDef *hhid;
+  if (!GetHHID(hhid))
+  {
+    return (uint8_t)USBD_FAIL;
+  }
+
+#if PACKETBUFFER_USE_TX_BUFFERS
+  EP_Buffers[ep]->CommitRead(pdev->ep_in[ep].total_length);
+#endif
+
+  if (pdev->ep_in[ep].total_length > 0U && (pdev->ep_in[ep].total_length % pdev->ep_in[ep].maxpacket) == 0U)
   {
     /* Update the packet total length */
     pdev->ep_in[ep].total_length = 0U;
 
     /* Send ZLP */
     (void)USBD_LL_Transmit(pdev, endp, NULL, 0U);
+    return (uint8_t)USBD_OK;
   }
-  else
+#if PACKETBUFFER_USE_TX_BUFFERS
+  if (!USB_SendTXBufferUnsafe(pdev, hhid, ep))
   {
-    ((USBD_HID_HandleTypeDef *)pdev->pClassData)->TXstate[ep] = HID_IDLE;
+    hhid->TXstate[ep] = HID_IDLE;
   }
   return (uint8_t)USBD_OK;
+#else
+  hhid->TXstate[ep] = HID_IDLE;
+  return (uint8_t)USBD_OK;
+#endif
 }
 
 /**
@@ -778,12 +860,10 @@ static bool PrepareReceive(USBD_HandleTypeDef *pdev, uint8_t ep)
   {
     return true;
   }
-#if !PACKETBUFFER_ALLOW_OVERWRITE
-  if (RX_Buffers[ep]->isFull())
+  if (EP_Buffers[ep]->isFull() && !PACKETBUFFER_ALLOW_OVERWRITE)
   {
     return false;
   }
-#endif
   uint32_t len = USB_EP_SIZE;
   auto buf = EP_Buffers[ep]->PrepareWrite(len);
   USBD_LL_PrepareReceive(pdev, ep, buf, len);
