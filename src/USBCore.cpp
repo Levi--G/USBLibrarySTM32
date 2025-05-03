@@ -89,7 +89,6 @@ uint8_t tempdescbufferpos = 0;
 bool descBufferMode = false;
 
 /* RX buffers */
-PacketBuffer *EP0_RX_Buffer;
 PacketBuffer *EP_Buffers[USB_MAX_EPS];
 uint16_t Recv_EP0 = false;
 USBD_SetupReqTypedef EP0Setup;
@@ -443,7 +442,7 @@ int USB_RecvControl(void *data, int len)
   {
     return 0;
   }
-  auto buffer = EP0_RX_Buffer;
+  auto buffer = EP_Buffers[0];
   if (buffer == NULL)
   {
     return 0;
@@ -477,7 +476,7 @@ static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev,
 
   pdev->pClassData = (void *)hhid;
 
-  EP0_RX_Buffer = new SplitPacketBuffer<USB_EP0_SIZE, EP0_PACKETBUFFER_COUNT>();
+  EP_Buffers[0] = new SplitPacketBuffer<USB_EP0_SIZE, EP0_PACKETBUFFER_COUNT>();
 
   uint_fast8_t eps = USB_EP_GetNumEndpoints();
   const ep_desc_t *epdefs = USB_EP_GetEndpointsSlots();
@@ -521,10 +520,10 @@ static uint8_t USBD_HID_DeInit(USBD_HandleTypeDef *pdev,
 {
   UNUSED(cfgidx);
 
-  if (EP0_RX_Buffer)
+  if (EP_Buffers[0])
   {
-    delete EP0_RX_Buffer;
-    EP0_RX_Buffer = NULL;
+    delete EP_Buffers[0];
+    EP_Buffers[0] = NULL;
   }
 
   uint_fast8_t eps = USB_EP_GetNumEndpoints();
@@ -701,10 +700,10 @@ static uint8_t USBD_HID_Setup(USBD_HandleTypeDef *pdev,
       return (uint8_t)USBD_FAIL;
     }
     EP0Setup = *req;
-    EP0_RX_Buffer->clear();
+    EP_Buffers[0]->clear();
     Recv_EP0 = min(req->wLength, (uint16_t)(PACKETBUFFER_COUNT * USB_EP0_SIZE));
     uint32_t len = Recv_EP0;
-    auto buf = EP0_RX_Buffer->PrepareWrite(len);
+    auto buf = EP_Buffers[0]->PrepareWrite(len);
     USBD_CtlPrepareRx(&hUSBD_Device_HID_Handle, buf, len);
     return (uint8_t)USBD_OK;
   }
@@ -765,11 +764,11 @@ static uint8_t USBD_HID_EP0_RxReady(USBD_HandleTypeDef *pdev)
   if (Recv_EP0)
   {
     USBD_HID_DataOut(pdev, 0);
-    auto read = EP0_RX_Buffer->available();
+    auto read = EP_Buffers[0]->available();
     if (Recv_EP0 > read)
     {
       uint32_t len = Recv_EP0 - read;
-      auto buf = EP0_RX_Buffer->PrepareWrite(len);
+      auto buf = EP_Buffers[0]->PrepareWrite(len);
       USBD_CtlPrepareRx(pdev, buf, len);
       return (uint8_t)USBD_OK;
     }
