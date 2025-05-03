@@ -33,7 +33,7 @@ extern "C"
 
 #define SMALL_EP(Ep) (Ep & 0xFU)
 #define IN_EP(Ep) (lowByte((Ep) | 0x80))
-#define IS_IN_EP(Ep) ((Ep | 0x80) == 0x80)
+#define IS_IN_EP(Ep) ((Ep & 0x80) == 0x80)
 
 #ifndef PCD_USE_DBL_BUF
 #define PCD_USE_DBL_BUF 0
@@ -63,8 +63,7 @@ extern "C"
 
   void USB_EP_ClearEndpoints();
   uint8_t USB_EP_AddEndpoint(uint32_t ep_type);
-  uint8_t USB_EP_GetNumEndpoints();
-  uint8_t USB_EP_GetNumEndpointsSlots();
+  uint_fast8_t USB_EP_GetNumEndpoints();
   const ep_desc_t *USB_EP_GetEndpointsSlots();
 
 #ifdef __cplusplus

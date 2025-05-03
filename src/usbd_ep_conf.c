@@ -23,7 +23,7 @@
 #include "usbd_ep_conf.h"
 
 ep_desc_t ep_def[USB_MAX_EPS_SLOTS];
-uint8_t ep_num = 0;
+uint_fast8_t ep_num = 0;
 
 void USB_EP_ClearEndpoints()
 {
@@ -53,7 +53,7 @@ uint8_t USB_EP_AddEndpoint(uint32_t ep_type)
   return ep;
 }
 
-uint8_t USB_EP_GetNumEndpoints()
+uint_fast8_t USB_EP_GetNumEndpoints()
 {
   return ep_num;
 }

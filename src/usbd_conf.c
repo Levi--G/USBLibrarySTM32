@@ -464,7 +464,7 @@ void USBWakeUp_IRQHandler_dummy(void)
  */
 USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef *pdev)
 {
-  USBD_reenumerate();
+  // USBD_reenumerate();
   /* Set common LL Driver parameters */
   g_hpcd.Init.dev_endpoints = USB_EP_GetNumEndpoints();
 #ifdef DEP0CTL_MPS_64
@@ -522,11 +522,17 @@ USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef *pdev)
 
 #if !defined(USB)
   /* configure EPs FIFOs */
-  HAL_PCDEx_SetRxFiFo(&g_hpcd, 0x80);
-  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 0, 0x40);
-  for (uint32_t i = 1; i < eps; i++)
+  HAL_PCDEx_SetRxFiFo(&g_hpcd, USB_ABS_EP0_SIZE * 2);
+  HAL_PCDEx_SetTxFiFo(&g_hpcd, 0, USB_ABS_EP0_SIZE);
+
+  uint8_t eps = USB_EP_GetNumEndpoints();
+  const ep_desc_t *epdefs = USB_EP_GetEndpointsSlots();
+  for (uint32_t i = 0; i < eps; i++)
   {
-    HAL_PCDEx_SetTxFiFo(&g_hpcd, ep_def[i].ep_num & 0xF, ep_def[i].ep_kind == PCD_DBL_BUF ? ep_def[i].ep_size * 2 : ep_def[i].ep_size);
+    if (IS_IN_EP(epdefs[i].ep_num))
+    {
+      HAL_PCDEx_SetTxFiFo(&g_hpcd, epdefs[i].ep_num & 0xF, USB_ABS_EP_SIZE * 2);
+    }
   }
 #else
   uint32_t currentaddress = PMA_BASE_ADDR;

@@ -116,7 +116,7 @@ USBD_DescriptorsTypeDef USBD_Desc = {
 
 /* USB Standard Device Descriptor */
 __ALIGN_BEGIN uint8_t USBD_Class_DeviceDesc[USB_LEN_DEV_DESC] __ALIGN_END = {
-    0x18,                 /* bLength */
+    0x12,                 /* bLength */
     USB_DESC_TYPE_DEVICE, /* bDescriptorType */
 #if ((USBD_LPM_ENABLED == 1) || (USBD_CLASS_BOS_ENABLED == 1))
     0x01, /*bcdUSB */ /* changed to USB version 2.01
