@@ -1,7 +1,7 @@
 #include <Arduino.h>
-#include "SerialUSB.h"
+#include "USBCDC.h"
 
-SerialUSB_ SerialUSB;
+USBCDC SerialUSB;
 int available = 0;
 size_t bytes = 0;
 byte buffer[64];
