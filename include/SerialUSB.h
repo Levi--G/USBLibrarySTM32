@@ -18,6 +18,13 @@
 #define CDC_CS_ENDPOINT 0x25
 #define CDC_DATA_INTERFACE_CLASS 0x0A
 
+
+#if USB_SERIAL_USE_ACM_EP
+#define USB_SERIAL_EP_NUM 3
+#else
+#define USB_SERIAL_EP_NUM 2
+#endif
+
 // CDC CS interface descriptor
 typedef struct
 {
@@ -63,8 +70,9 @@ typedef struct
 	ACMFunctionalDescriptor controlManagement;	   // ACM
 	CDCCSInterfaceDescriptor functionalDescriptor; // CDC_UNION
 	CMFunctionalDescriptor callManagement;		   // Call Management
+#if USB_SERIAL_USE_ACM_EP
 	EndpointDescriptor cifin;
-
+#endif
 	//	Data
 	InterfaceDescriptor dif;
 	EndpointDescriptor in;
@@ -144,7 +152,7 @@ protected:
 private:
 	int availableForStore(void);
 	bool stalled;
-	uint8_t epType[3];
+	uint8_t epType[USB_SERIAL_EP_NUM];
 };
 
 #endif /* USBCON */

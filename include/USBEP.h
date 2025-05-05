@@ -5,9 +5,9 @@
 #define MAX_USB_EP_SIZE 64
 
 #if defined(USB_OTG_FS)
-#define USB_MAX_EPS 4
+#define USB_MAX_EPS 3
 #else
-#define USB_MAX_EPS 8
+#define USB_MAX_EPS 7
 #endif
 #define USB_MAX_EPS_SLOTS (USB_MAX_EPS -1)
 

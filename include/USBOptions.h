@@ -1,12 +1,14 @@
 #pragma once
 
-//These options can be changed by adding -D Option=value to your compiler arguments
+#include "USBOptionsDefaults.h"
+
+// These options can be changed by adding -D Option=value to your compiler arguments
 /*
 For PIO, in platformio.ini:
-build_flags = 
+build_flags =
 	-D USBCON
 	-D HAL_PCD_MODULE_ENABLED
-    -D Option=value
+	-D Option=value
 */
 
 #ifndef USB_EP0_SIZE
@@ -26,15 +28,17 @@ build_flags =
 
 #ifndef PACKETBUFFER_COUNT
 // Packetbuffer count determines the buffer size,
-// this can be lowered to save ram, but more missed data may occur
-// if you have missing packets, increase the size
-#define PACKETBUFFER_COUNT 3
+// this can be lowered to 2 to save ram, but more missed data may occur.
+// 2 should be stable on USB_OTG_FS, 3 on USB.
+// If you have missing packets, increase the size
+#define PACKETBUFFER_COUNT PACKETBUFFER_COUNT_DEFAULT
 #endif
 
 #ifndef PACKETBUFFER_ALLOW_OVERWRITE
 // Allows buffers to be overwritten in case of data overload,
 // this prevents hangs but might cause data loss if polling rate is too low
-#define PACKETBUFFER_ALLOW_OVERWRITE true
+// recommended for stm32 with "classic" USB, not needed for stm32 with USB_OTF_FS
+#define PACKETBUFFER_ALLOW_OVERWRITE PACKETBUFFER_ALLOW_OVERWRITE_DEFAULT
 #endif
 
 #ifndef PACKETBUFFER_USE_FAST_AVAILABLE
@@ -52,4 +56,11 @@ build_flags =
 #ifndef USB_WRITE_TIMEOUT
 // Sets a timeout for the USB_Send and USB_Flush function
 #define USB_WRITE_TIMEOUT 100
+#endif
+
+#ifndef USB_SERIAL_USE_ACM_EP
+// Enables the third ACM endpoint of USB serial wich is in this library normally
+// disabled to use the EP for other libraries but might not be compatible with some OSses
+// or programs that might need it to be enabled
+#define USB_SERIAL_USE_ACM_EP false
 #endif

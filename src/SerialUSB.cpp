@@ -25,7 +25,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-//#include "core_cm3.h"
+// #include "core_cm3.h"
 
 #define CDC_SERIAL_BUFFER_SIZE 256
 
@@ -57,9 +57,12 @@ static volatile int32_t breakValue = -1;
 // CDC
 #define CDC_ACM_INTERFACE pluggedInterface				 // CDC ACM
 #define CDC_DATA_INTERFACE uint8_t(pluggedInterface + 1) // CDC Data
-#define CDC_ENDPOINT_ACM pluggedEndpoint
+
+#if USB_SERIAL_USE_ACM_EP
+#define CDC_ENDPOINT_ACM pluggedEndpoint + 2
+#endif
 #define CDC_ENDPOINT_OUT pluggedEndpoint + 1
-#define CDC_ENDPOINT_IN pluggedEndpoint + 2
+#define CDC_ENDPOINT_IN pluggedEndpoint
 
 #define CDC_RX CDC_ENDPOINT_OUT
 #define CDC_TX CDC_ENDPOINT_IN
@@ -70,15 +73,20 @@ int SerialUSB_::getInterface(uint8_t *interfaceNum)
 	CDCDescriptor _cdcInterface = {
 		D_IAD(pluggedInterface, 2, CDC_COMMUNICATION_INTERFACE_CLASS, CDC_ABSTRACT_CONTROL_MODEL, 0),
 
-		// CDC communication interface
+	// CDC communication interface
+#if USB_SERIAL_USE_ACM_EP
 		D_INTERFACE(CDC_ACM_INTERFACE, 1, CDC_COMMUNICATION_INTERFACE_CLASS, CDC_ABSTRACT_CONTROL_MODEL, 0),
+#else
+		D_INTERFACE(CDC_ACM_INTERFACE, 0, CDC_COMMUNICATION_INTERFACE_CLASS, CDC_ABSTRACT_CONTROL_MODEL, 0),
+#endif
 		D_CDCCS(CDC_HEADER, CDC_V1_10 & 0xFF, (CDC_V1_10 >> 8) & 0x0FF), // Header (1.10 bcd)
 
 		D_CDCCS4(CDC_ABSTRACT_CONTROL_MANAGEMENT, 6),			   // SET_LINE_CODING, GET_LINE_CODING, SET_CONTROL_LINE_STATE supported
 		D_CDCCS(CDC_UNION, CDC_ACM_INTERFACE, CDC_DATA_INTERFACE), // Communication interface is master, data interface is slave 0
 		D_CDCCS(CDC_CALL_MANAGEMENT, 1, 1),						   // Device handles call management (not)
+#if USB_SERIAL_USE_ACM_EP
 		D_ENDPOINT(USB_ENDPOINT_IN(CDC_ENDPOINT_ACM), USB_ENDPOINT_TYPE_INTERRUPT, 0x10, 0x10),
-
+#endif
 		// CDC data interface
 		D_INTERFACE(CDC_DATA_INTERFACE, 2, CDC_DATA_INTERFACE_CLASS, 0, 0),
 		D_ENDPOINT(USB_ENDPOINT_OUT(CDC_ENDPOINT_OUT), USB_ENDPOINT_TYPE_BULK, EPX_SIZE, 0),
@@ -157,9 +165,9 @@ bool SerialUSB_::setup(USBSetup &setup)
 
 		if (r == CDC_SET_LINE_CODING || r == CDC_SET_CONTROL_LINE_STATE)
 		{
-			//TODO reset
-			// 	NVIC_SystemReset();
-			// USB_SendZLP(0);
+			// TODO reset
+			//  	NVIC_SystemReset();
+			//  USB_SendZLP(0);
 		}
 
 		if (CDC_SEND_BREAK == r)
@@ -172,11 +180,13 @@ bool SerialUSB_::setup(USBSetup &setup)
 	return false;
 }
 
-SerialUSB_::SerialUSB_() : PluggableUSBModule(3, 2, epType), stalled(false)
+SerialUSB_::SerialUSB_() : PluggableUSBModule(2, 2, epType), stalled(false)
 {
-	epType[0] = USB_ENDPOINT_TYPE_INTERRUPT | USB_ENDPOINT_IN(0);
+	epType[0] = USB_ENDPOINT_TYPE_BULK | USB_ENDPOINT_IN(0);
 	epType[1] = USB_ENDPOINT_TYPE_BULK | USB_ENDPOINT_OUT(0);
-	epType[2] = USB_ENDPOINT_TYPE_BULK | USB_ENDPOINT_IN(0);
+#if USB_SERIAL_USE_ACM_EP
+	epType[2] = USB_ENDPOINT_TYPE_INTERRUPT | USB_ENDPOINT_IN(0);
+#endif
 	PluggableUSB().plug(this);
 }
 
