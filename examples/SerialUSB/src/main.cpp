@@ -1,29 +1,29 @@
 #include <Arduino.h>
-#include "SerialUSB.h"
+#include "USBCDC.h"
 
-SerialUSB_ SerialUSB;
+USBCDC USBSerial;
 
 void setup()
 {
-  SerialUSB.begin(115200);
+  USBSerial.begin(115200);
   USB_Begin();
   while (!USB_Running())
   {
     // wait until usb connected
     delay(5);
   }
-  while (!SerialUSB)
+  while (!USBSerial)
   {
-    //(optional)wait until Serial port is connected
+    //(optional) wait until Serial port is connected
     delay(5);
   }
 }
 
 void loop()
 {
-  if (SerialUSB.available())
+  if (USBSerial.available())
   {
-    SerialUSB.print("Echo: ");
-    SerialUSB.println((char)SerialUSB.read());
+    USBSerial.print("Echo: ");
+    USBSerial.println((char)USBSerial.read());
   }
 }

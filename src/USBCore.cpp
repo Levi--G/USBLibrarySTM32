@@ -156,7 +156,16 @@ void USB_End()
 
 void USB_PlugRoot(PluggableUSBModule *root)
 {
+  bool wasinit = HID_initialized;
+  if (wasinit)
+  {
+    USB_End();
+  }
   rootModule = root;
+  if (wasinit)
+  {
+    USB_Begin();
+  }
 }
 int PLUG_GetInterface(uint8_t *interfaceCount)
 {
@@ -329,6 +338,10 @@ int USB_Send(uint8_t endp, const void *data, int len)
 
 int USB_SendControl(uint8_t flags, const void *d, int len)
 {
+  if (!USB_Running())
+  {
+    return 0;
+  }
   if (cfgBufferMode)
   {
     if (tempcfgbufferpos + len < USB_CFGBUFFER_LEN)
@@ -368,7 +381,7 @@ int USB_SendControl(uint8_t flags, const void *d, int len)
 
 uint8_t USB_SendSpace(uint8_t endp)
 {
-  return USB_SendAvailable(endp) ? USB_EP_SIZE : 0;
+  return USB_SendAvailable(endp) ? (endp == 0 ? USB_EP0_SIZE : USB_EP_SIZE) : 0;
 }
 
 int USB_SendZLP(uint8_t endp)

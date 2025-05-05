@@ -18,7 +18,6 @@
 #define CDC_CS_ENDPOINT 0x25
 #define CDC_DATA_INTERFACE_CLASS 0x0A
 
-
 #if USB_SERIAL_USE_ACM_EP
 #define USB_SERIAL_EP_NUM 3
 #else
@@ -79,10 +78,10 @@ typedef struct
 	EndpointDescriptor out;
 } CDCDescriptor;
 
-class SerialUSB_ : public Stream, public PluggableUSBModule
+class USBCDC : public Stream, public PluggableUSBModule
 {
 public:
-	SerialUSB_();
+	USBCDC();
 	void begin() {}
 	void begin(uint32_t baud_count);
 	void begin(unsigned long, uint8_t);
