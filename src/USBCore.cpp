@@ -198,20 +198,13 @@ static bool Init_Endpoints()
   }
   for (uint_fast8_t i = 0; i < eps; i++)
   {
-    USB_EP_AddEndpoint(epstypes[i]);
+    if (!USB_EP_AddEndpoint(epstypes[i]))
+    {
+      return false;
+    }
   }
   return true;
 }
-
-// bool IsEPIN(uint8_t ep)
-// {
-//   return (_initEndpoints[SMALL_EP(ep)] & USB_ENDPOINT_DIRECTION_MASK);
-// }
-
-// uint8_t GetFullEP(uint8_t ep)
-// {
-//   return IsEPIN(ep) ? USB_ENDPOINT_IN(SMALL_EP(ep)) : SMALL_EP(ep);
-// }
 
 USBD_EndpointTypeDef *GetEPTypeDef(uint8_t ep, bool in)
 {
@@ -486,9 +479,10 @@ static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev,
     uint8_t EP = epdefs[i].ep_num;
     uint8_t ep = SMALL_EP(EP);
     USBD_EndpointTypeDef *eptdef = GetEPTypeDef(EP, IS_IN_EP(EP));
-    eptdef->bInterval = pdev->dev_speed == USBD_SPEED_HIGH ? HID_HS_BINTERVAL : HID_FS_BINTERVAL;
-    USBD_LL_OpenEP(pdev, EP, epdefs[ep].ep_type, USB_EP_SIZE);
+    eptdef->bInterval = ((pdev->dev_speed == USBD_SPEED_HIGH) ? HID_HS_BINTERVAL : HID_FS_BINTERVAL);
+    USBD_LL_OpenEP(pdev, EP, epdefs[i].ep_type, USB_EP_SIZE);
     eptdef->is_used = 1U;
+    hhid->EPstate[ep] = HID_IDLE;
     if (IS_IN_EP(EP))
     {
 #if PACKETBUFFER_USE_TX_BUFFERS
@@ -500,10 +494,9 @@ static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev,
       EP_Buffers[ep] = new SplitPacketBuffer<USB_EP_SIZE, PACKETBUFFER_COUNT>();
       if (!PrepareReceive(pdev, hhid, ep))
       {
-        USBD_LL_PrepareReceive(pdev, ep, 0, 0);
+        return (uint8_t)USBD_EMEM;
       }
     }
-    hhid->EPstate[ep] = HID_IDLE;
   }
   return (uint8_t)USBD_OK;
 }
@@ -759,11 +752,37 @@ static uint8_t *USBD_HID_GetOtherSpeedCfgDesc(uint16_t *length)
   return USBD_HID_GetFSCfgDesc(length);
 }
 
+static uint8_t USBD_HID_HandleDataOut(USBD_HandleTypeDef *pdev, uint8_t endp)
+{
+  USBD_HID_HandleTypeDef *hhid;
+  if (!GetHHID(hhid))
+  {
+    return USBD_FAIL;
+  }
+  uint8_t ep = SMALL_EP(endp);
+  auto buffer = EP_Buffers[ep];
+  if (buffer == NULL)
+  {
+    // this should never happen;
+    return (uint8_t)USBD_FAIL;
+  }
+  buffer->CommitWrite(USBD_LL_GetRxDataSize(pdev, endp));
+  hhid->EPstate[ep] = HID_IDLE;
+  if (ep != 0)
+  {
+    PrepareReceive(pdev, hhid, ep);
+  }
+  return (uint8_t)USBD_OK;
+}
+
 static uint8_t USBD_HID_EP0_RxReady(USBD_HandleTypeDef *pdev)
 {
   if (Recv_EP0)
   {
-    USBD_HID_DataOut(pdev, 0);
+    if (USBD_HID_HandleDataOut(pdev, 0) != USBD_OK)
+    {
+      return (uint8_t)USBD_FAIL;
+    }
     auto read = EP_Buffers[0]->available();
     if (Recv_EP0 > read)
     {
@@ -834,25 +853,7 @@ static uint8_t USBD_HID_DataIn(USBD_HandleTypeDef *pdev,
  */
 static uint8_t USBD_HID_DataOut(USBD_HandleTypeDef *pdev, uint8_t endp)
 {
-  USBD_HID_HandleTypeDef *hhid;
-  if (!GetHHID(hhid))
-  {
-    return USBD_FAIL;
-  }
-  uint8_t ep = SMALL_EP(endp);
-  auto buffer = EP_Buffers[ep];
-  if (buffer == NULL)
-  {
-    // this should never happen;
-    return (uint8_t)USBD_FAIL;
-  }
-  buffer->CommitWrite(USBD_LL_GetRxDataSize(pdev, endp));
-  hhid->EPstate[ep] = HID_IDLE;
-  if (ep != 0 && !PrepareReceive(pdev, hhid, ep))
-  {
-    USBD_LL_PrepareReceive(pdev, endp, 0, 0);
-  }
-  return (uint8_t)USBD_OK;
+  return USBD_HID_HandleDataOut(pdev, endp);
 }
 
 /// @param ep SMALL_EP(endp)
@@ -871,10 +872,10 @@ static bool PrepareReceive(USBD_HandleTypeDef *pdev, USBD_HID_HandleTypeDef *hhi
   {
     return false;
   }
+  hhid->EPstate[ep] = HID_BUSY;
   uint32_t len = USB_EP_SIZE;
   auto buf = EP_Buffers[ep]->PrepareWrite(len);
   USBD_LL_PrepareReceive(pdev, ep, buf, len);
-  hhid->EPstate[ep] = HID_BUSY;
   return true;
 }
 

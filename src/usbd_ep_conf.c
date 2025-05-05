@@ -37,7 +37,7 @@ void USB_EP_ClearEndpoints()
 
 int USB_EP_GetEndpointsSize()
 {
-  return (2 * USB_ABS_EP0_SIZE + ep_num * USB_ABS_EP_SIZE);
+  return (USB_ABS_EP0_SIZE + USB_ABS_EP0_TX_SIZE + (ep_num * USB_ABS_EP_SIZE));
 }
 
 uint8_t USB_EP_AddEndpoint(uint32_t ep_type)

@@ -28,6 +28,7 @@ extern "C"
 {
 #endif
 
+#include <stm32_def.h>
 #include <stdint.h>
 #include "USBEP.h"
 
@@ -47,19 +48,33 @@ extern "C"
 #endif
 #endif
 
+#if defined(USB_OTG_FS)
+// words not bytes
+#define USB_ABS_EP0_SIZE (11 + ((USB_EP0_SIZE / 4) + 1) * 2)
+#define USB_ABS_EP0_TX_SIZE (USB_EP0_SIZE / 4)
+#define USB_ABS_EP_SIZE (USB_EP_SIZE / 4)
+#elif defined(USB)
 #define USB_ABS_EP0_SIZE (PCD_USE_DBL_BUF ? USB_EP0_SIZE * 2 : USB_EP0_SIZE)
+#define USB_ABS_EP0_TX_SIZE (PCD_USE_DBL_BUF ? USB_EP0_SIZE * 2 : USB_EP0_SIZE)
 #define USB_ABS_EP_SIZE (PCD_USE_DBL_BUF ? USB_EP_SIZE * 2 : USB_EP_SIZE)
+#else
+#error "unsupported USB"
+#endif
+
+#if defined(USB_OTG_FS)
+#define PMA_MAX_SIZE 320
+#elif defined(USB)
+#define PMA_BASE_ADDR (4 * 2 * USB_MAX_EPS)
+#ifndef PMA_MAX_SIZE
+#define PMA_MAX_SIZE (512 - PMA_BASE_ADDR)
+#endif
+#endif
 
   typedef struct
   {
     uint32_t ep_num;  /* Endpoint number+direction */
     uint32_t ep_type; /* Endpoint type */
   } ep_desc_t;
-
-#define PMA_BASE_ADDR (4 * 2 * USB_MAX_EPS)
-#ifndef PMA_MAX_SIZE
-#define PMA_MAX_SIZE (512 - PMA_BASE_ADDR)
-#endif
 
   void USB_EP_ClearEndpoints();
   uint8_t USB_EP_AddEndpoint(uint32_t ep_type);

@@ -7,20 +7,23 @@ void setup()
 {
   SerialUSB.begin(115200);
   USB_Begin();
-  while (!USB_Running()){
-    //wait until usb connected
-    delay(50);
+  while (!USB_Running())
+  {
+    // wait until usb connected
+    delay(5);
   }
-  while (!SerialUSB){
-    //wait until Serial port is connected
-    delay(50);
+  while (!SerialUSB)
+  {
+    //(optional)wait until Serial port is connected
+    delay(5);
   }
 }
 
 void loop()
 {
-  if (SerialUSB.available()){
+  if (SerialUSB.available())
+  {
     SerialUSB.print("Echo: ");
-    SerialUSB.println(SerialUSB.readString());
+    SerialUSB.println((char)SerialUSB.read());
   }
 }

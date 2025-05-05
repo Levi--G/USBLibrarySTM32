@@ -305,10 +305,10 @@ void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd)
     break;
   }
 #endif
-  /* Reset Device */
-  USBD_LL_Reset(hpcd->pData);
 
   USBD_LL_SetSpeed(hpcd->pData, speed);
+  /* Reset Device */
+  USBD_LL_Reset(hpcd->pData);
 }
 
 /**
@@ -521,17 +521,25 @@ USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef *pdev)
   }
 
 #if !defined(USB)
-  /* configure EPs FIFOs */
-  HAL_PCDEx_SetRxFiFo(&g_hpcd, USB_ABS_EP0_SIZE * 2);
-  HAL_PCDEx_SetTxFiFo(&g_hpcd, 0, USB_ABS_EP0_SIZE);
 
   uint8_t eps = USB_EP_GetNumEndpoints();
+  int32_t freemem = PMA_MAX_SIZE - USB_ABS_EP0_SIZE - USB_ABS_EP0_TX_SIZE - (USB_ABS_EP_SIZE * eps);
+  if (freemem < 0)
+  {
+    // this is really not good so bail here
+    return USBD_EMEM;
+  }
+  /* configure EPs FIFOs */
+  // we will use all the extra free memory as extra RX buffer
+  HAL_PCDEx_SetRxFiFo(&g_hpcd, USB_ABS_EP0_SIZE + freemem);
+  HAL_PCDEx_SetTxFiFo(&g_hpcd, 0, USB_ABS_EP0_TX_SIZE);
+
   const ep_desc_t *epdefs = USB_EP_GetEndpointsSlots();
   for (uint32_t i = 0; i < eps; i++)
   {
     if (IS_IN_EP(epdefs[i].ep_num))
     {
-      HAL_PCDEx_SetTxFiFo(&g_hpcd, epdefs[i].ep_num & 0xF, USB_ABS_EP_SIZE * 2);
+      HAL_PCDEx_SetTxFiFo(&g_hpcd, epdefs[i].ep_num & 0xF, USB_ABS_EP_SIZE);
     }
   }
 #else
@@ -549,7 +557,7 @@ USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef *pdev)
   address = currentaddress;
 #endif
   HAL_PCDEx_PMAConfig(&g_hpcd, 0x80, PCD_DEF_BUF, address);
-  currentaddress += USB_ABS_EP0_SIZE;
+  currentaddress += USB_ABS_EP0_TX_SIZE;
 
   uint8_t eps = USB_EP_GetNumEndpoints();
   const ep_desc_t *epdefs = USB_EP_GetEndpointsSlots();
