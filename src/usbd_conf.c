@@ -464,7 +464,7 @@ void USBWakeUp_IRQHandler_dummy(void)
  */
 USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef *pdev)
 {
-  // USBD_reenumerate();
+  USBD_reenumerate();
   /* Set common LL Driver parameters */
   g_hpcd.Init.dev_endpoints = USB_EP_GetNumEndpoints();
 #ifdef DEP0CTL_MPS_64
