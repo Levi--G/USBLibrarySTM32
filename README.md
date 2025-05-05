@@ -43,11 +43,11 @@ On these boards:
 
 ## Installation Instructions per project
 
-- Include the library via [platformio](https://registry.platformio.org/libraries/levi--g/USBLibrarySTM32) or on Arduino IDE via add library zip
-- (only on Arduino IDE) Add `-D USBCON` and `-D HAL_PCD_MODULE_ENABLED` to your build flags
+- Include the library via [platformio](https://registry.platformio.org/libraries/levi--g/USBLibrarySTM32) or on Arduino IDE via add library zip (broken, waiting for a fix from arduino)
+- Add `-D USBCON` and `-D HAL_PCD_MODULE_ENABLED` to your build flags
 - Add Keyboard/Mouse/Serial/joystick... instances
 - Call `USB_Begin();` in your Setup
-- Optionally also call `while (!USB_Running()){ delay(50); }` in your setup if you want to wait until the device actually has an usb connection, otherwise make sure to check `USB_Running()` before calling any usb methods!
+- Optionally also call `while (!USB_Running()){ delay(5); }` in your setup if you want to wait until the device actually has an usb connection, otherwise make sure to check `USB_Running()` before calling any usb methods!
 - Call begin() on your instances after being connected
 - Do **NOT** include the builtin usb-composite Keyboard or mouse libraries, if you want to use mouse or keyboard include the [Arduino libraries](https://registry.platformio.org/libraries/arduino-libraries/Mouse) instead
 
