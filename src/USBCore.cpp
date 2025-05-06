@@ -338,10 +338,6 @@ int USB_Send(uint8_t endp, const void *data, int len)
 
 int USB_SendControl(uint8_t flags, const void *d, int len)
 {
-  if (!USB_Running())
-  {
-    return 0;
-  }
   if (cfgBufferMode)
   {
     if (tempcfgbufferpos + len < USB_CFGBUFFER_LEN)
@@ -374,6 +370,10 @@ int USB_SendControl(uint8_t flags, const void *d, int len)
       tempdescbufferpos += len;
       return len;
     }
+    return 0;
+  }
+  if (!USB_Running())
+  {
     return 0;
   }
   return (USBD_CtlSendData(&hUSBD_Device_HID_Handle, (uint8_t *)d, len) == USBD_OK) ? len : 0;
