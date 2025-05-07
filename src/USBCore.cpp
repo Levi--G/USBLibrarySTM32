@@ -142,6 +142,11 @@ bool USB_Running()
   return GetHHID(hhid);
 }
 
+bool USB_Connected()
+{
+  return hUSBD_Device_HID_Handle.dev_state == USBD_STATE_CONFIGURED;
+}
+
 void USB_End()
 {
   if (HID_initialized)
@@ -233,7 +238,7 @@ static bool USB_SendAvailable_Internal(USBD_HID_HandleTypeDef *&hhid, uint8_t en
     return true;
   }
 #endif
-  return hhid->EPstate[ep] != HID_BUSY;
+  return hUSBD_Device_HID_Handle.dev_state == USBD_STATE_CONFIGURED && hhid->EPstate[ep] != HID_BUSY;
 }
 
 static bool USB_Flush_Internal(USBD_HID_HandleTypeDef *&hhid, uint8_t endp)
@@ -263,7 +268,7 @@ static bool USB_Flush_Internal(USBD_HID_HandleTypeDef *&hhid, uint8_t endp)
 bool USB_SendAvailable(uint8_t endp)
 {
   USBD_HID_HandleTypeDef *hhid;
-  if (!GetHHID(hhid) || hUSBD_Device_HID_Handle.dev_state != USBD_STATE_CONFIGURED)
+  if (!GetHHID(hhid))
   {
     return false;
   }

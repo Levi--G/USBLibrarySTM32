@@ -68,19 +68,75 @@ typedef struct
 #define TRANSFER_RELEASE	0x40
 #define TRANSFER_ZERO		0x20
 
+/// @brief Sends a message over the CTRL 0 endpoint
+/// @param flags ignored on STM32
+/// @param d data buffer
+/// @param len length of data
+/// @return length of data written, can be smaller than len
 int USB_SendControl(uint8_t flags, const void* d, int len);
+/// @brief Reads data from the CTRL 0 endpoint
+/// @param d data buffer
+/// @param len length of data
+/// @return length read into buffer, can be smaller than len
 int USB_RecvControl(void* d, int len);
+/// @brief Gives the available read length on an RX (OUT) endpoint
+/// @param ep RX (OUT) endpoint
+/// @return length in bytes
 uint8_t	USB_Available(uint8_t ep);
+/// @brief The amount of free space on a TX (IN) ep
+/// @param ep TX (IN) endpoint
+/// @return free space in bytes
 uint8_t USB_SendSpace(uint8_t ep);
-int USB_SendZLP(uint8_t ep);	// blocking
-int USB_Send(uint8_t ep, const void* data, int len);	// blocking
-int USB_SendQuick(uint8_t ep, const void* data, int len);	// non-blocking, make sure to use a proper buffer!
+/// @brief Sends a zero length packet, blocking for compatibility
+/// @param ep TX (IN) endpoint
+/// @return 0
+int USB_SendZLP(uint8_t ep);
+/// @brief Sends data to an endpoint, blocking for compatibility
+/// @param ep TX (IN) endpoint
+/// @param data data buffer
+/// @param len data length
+/// @return length written to EP, can be smaller than len
+int USB_Send(uint8_t ep, const void* data, int len);
+/// @brief Sends data to an endpoint, non blocking
+/// unless previous data is still being sent out
+/// when not using TX buffers make sure to use a buffer allocated on heap
+/// @param ep TX (IN) endpoint
+/// @param data data buffer
+/// @param len data length
+/// @return length written to EP, can be smaller than len
+int USB_SendQuick(uint8_t ep, const void* data, int len);
+/// @brief Returns if sending is possible on this endpoint
+/// @param ep TX (IN) endpoint
+/// @return true if sending is possible
 bool USB_SendAvailable(uint8_t ep);
-int USB_Recv(uint8_t ep, void* data, int len);		// non-blocking
-int USB_Recv(uint8_t ep);	// non-blocking
+/// @brief Receives data on a RX (OUT) endpoint
+/// @param ep RX (OUT) endpoint
+/// @param data data buffer
+/// @param len data length
+/// @return length read into buffer
+int USB_Recv(uint8_t ep, void* data, int len);
+/// @brief Reads a single byte from an endpoint,
+/// not very performant, prefer using a buffer instead
+/// @param ep RX (OUT) endpoint
+/// @return 1 if reading was successful
+int USB_Recv(uint8_t ep);
+/// @brief Flushes an endpoint
+/// @param ep RX or TX endpoint
 void USB_Flush(uint8_t ep);
+/// @brief Starts the USB and allocates needed resources
+/// @return true if successful
 bool USB_Begin();
+/// @brief Checks if the USB is allocated and ready to connect.  
+/// 
+/// Sending to buffer is already possible but there might be no host listening yet
+/// @return true if ready
 bool USB_Running();
+/// @brief Checks if the USB has active communication with a host
+/// 
+/// This can be used to react to usb connection/disconnection
+/// @return true if active
+bool USB_Connected();
+/// @brief Stops all USB activity and cleans up used resources
 void USB_End();
 
 // for pluggableusb support
