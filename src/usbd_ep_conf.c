@@ -21,93 +21,46 @@
 #if defined(HAL_PCD_MODULE_ENABLED) && defined(USBCON)
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_ep_conf.h"
-#include <stdbool.h>
-#include "usbd_def.h"
 
-ep_desc_t ep_def[USB_MAX_EPS_SLOTS] = {
-    {0x00, 0, USB_FS_MAX_PACKET_SIZE, PCD_DEF_BUF},
-    {0x80, 0, USB_FS_MAX_PACKET_SIZE, PCD_DEF_BUF}};
+ep_desc_t ep_def[USB_MAX_EPS_SLOTS];
+uint_fast8_t ep_num = 0;
 
-uint8_t USB_PMA_GetNumEndpointsSlots()
+void USB_EP_ClearEndpoints()
 {
-  uint8_t eps = USB_MAX_EPS_SLOTS;
-  for (uint8_t i = 1; i < USB_MAX_EPS_SLOTS; i++)
+  ep_desc_t epdef = {0, 0};
+  for (uint_fast8_t i = 0; i < USB_MAX_EPS_SLOTS; i++)
   {
-    if (ep_def[i].ep_size == 0)
-    {
-      eps = i;
-      break;
-    }
+    ep_def[i] = epdef;
   }
-  return eps;
+  ep_num = 0;
 }
 
-uint8_t USB_PMA_GetNumEndpoints()
+int USB_EP_GetEndpointsSize()
 {
-  uint8_t count = 0;
-  bool inuse[USB_MAX_EPS];
-  for (uint_fast8_t i = 0; i < USB_MAX_EPS; i++)
-  {
-    inuse[i] = false;
-  }
-  for (uint8_t i = 1; i < USB_MAX_EPS_SLOTS; i++)
-  {
-    if (ep_def[i].ep_size != 0)
-    {
-      if (!inuse[SMALL_EP(ep_def[i].ep_num)])
-      {
-        count++;
-        inuse[SMALL_EP(ep_def[i].ep_num)] = true;
-      }
-    }
-    else
-    {
-      break;
-    }
-  }
-  return count;
+  return (USB_ABS_EP0_SIZE + USB_ABS_EP0_TX_SIZE + (ep_num * USB_ABS_EP_SIZE));
 }
 
-uint32_t USB_PMA_GetNextEndpoint()
+uint8_t USB_EP_AddEndpoint(uint32_t ep_type)
 {
-  uint32_t maxep = 0;
-  for (uint8_t i = 1; i < USB_MAX_EPS_SLOTS; i++)
-  {
-    if (ep_def[i].ep_size != 0)
-    {
-      maxep = MAX(maxep, SMALL_EP(ep_def[i].ep_num));
-    }
-    else
-    {
-      break;
-    }
-  }
-  maxep++;
-  if (maxep >= USB_MAX_EPS)
+  if (ep_num >= USB_MAX_EPS_SLOTS || USB_EP_GetEndpointsSize() + USB_ABS_EP_SIZE > PMA_MAX_SIZE)
   {
     return 0;
   }
-  return maxep;
+  uint8_t ep = ep_num + 1;
+  ep_def[ep_num].ep_num = ep | (ep_type & (uint32_t)USB_ENDPOINT_DIRECTION_MASK);
+  ep_def[ep_num].ep_type = (ep_type & (uint32_t)USB_ENDPOINT_TYPE_MASK);
+  ep_num++;
+  return ep;
 }
 
-uint8_t USB_PMA_GetNextEndpointSlot()
+uint_fast8_t USB_EP_GetNumEndpoints()
 {
-  uint8_t eps = USB_PMA_GetNumEndpointsSlots();
-  if (eps >= USB_MAX_EPS_SLOTS)
-  {
-    return 0;
-  }
-  return eps;
+  return ep_num;
 }
 
-int USB_PMA_GetEndpointsSize()
+const ep_desc_t *USB_EP_GetEndpointsSlots()
 {
-  int size = 0;
-  for (uint8_t i = 0; i < USB_MAX_EPS_SLOTS; i++)
-  {
-    size += ep_def[i].ep_kind == PCD_DBL_BUF ? ep_def[i].ep_size * 2 : ep_def[i].ep_size;
-  }
-  return size;
+  return ep_def;
 }
 
 #endif /* HAL_PCD_MODULE_ENABLED && USBCON */

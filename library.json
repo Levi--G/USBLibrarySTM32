@@ -1,23 +1,42 @@
 {
-    "name": "USBLibrarySTM32",
-    "version": "0.3.0",
-    "description": "This library adds a very basic implementation of the original AVR Arduino USB API to make existing libraries compatible with stm32 boards. Caution, this library is only tested on a limited number of boards and libraries, please create an issue on the project github if you encounter issues!",
-    "keywords": "USB, stm32, HID",
-    "repository":
+  "name": "USBLibrarySTM32",
+  "version": "0.3.0",
+  "description": "This library adds a very basic implementation of the original AVR Arduino USB API to make existing libraries compatible with stm32 boards. Caution, this library is only tested on a limited number of boards and libraries, please create an issue on the project github if you encounter issues!",
+  "keywords": "USB, stm32, HID",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Levi--G/USBLibrarySTM32.git"
+  },
+  "authors": [
     {
-      "type": "git",
-      "url": "https://github.com/Levi--G/USBLibrarySTM32.git"
+      "name": "Levi Gillis",
+      "email": "gillislevi@gmail.com",
+      "url": "https://github.com/Levi--G"
+    }
+  ],
+  "license": "LGPL-3.0-or-later",
+  "homepage": "https://github.com/Levi--G/USBLibrarySTM32",
+  "frameworks": "arduino",
+  "platforms": "ststm32",
+  "build": {
+    "flags": "-D USBCON -D HAL_PCD_MODULE_ENABLED"
+  },
+  "examples": [
+    {
+        "name": "JoystickMouse",
+        "base": "examples/JoystickMouse",
+        "files": ["platformio.ini", "src/main.cpp"]
     },
-    "authors":
-    [
-      {
-        "name": "Levi Gillis",
-        "email": "gillislevi@gmail.com",
-        "url": "https://github.com/Levi--G"
-      }
-    ],
-    "license": "LGPL-3.0-or-later",
-    "homepage": "https://github.com/Levi--G/USBLibrarySTM32",
-    "frameworks": "arduino",
-    "platforms": "ststm32"
-  }
+    {
+        "name": "MIDI",
+        "base": "examples/MIDI",
+        "files": ["platformio.ini", "src/main.cpp"]
+    },
+    {
+        "name": "SerialUSB",
+        "base": "examples/SerialUSB",
+        "files": ["platformio.ini", "src/main.cpp"]
+    }
+],
+"headers": ["USBAPI.h", "SerialUSB.h"]
+}

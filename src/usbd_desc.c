@@ -1,28 +1,23 @@
-/**
- ******************************************************************************
- * @file    usbd_desc.c
- * @author  MCD Application Team
- * @brief   This file provides the USBD descriptors and string formatting method.
- ******************************************************************************
- * @attention
+/*
+ * usbd_desc.c
+ * Template generated with Stm32CubeMX "usbd_desc.c":
+ * Copyright (c) 2023 STMicroelectronics.
+ * All rights reserved.
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
  *
- * Modified by Levi Gillis @ 2022
- * Adjusted and reimplemented for compatibility with arduino
- *
- * <h2><center>&copy; Copyright (c) 2015 STMicroelectronics.
- * All rights reserved.</center></h2>
- *
- * This software component is licensed by ST under Ultimate Liberty license
- * SLA0044, the "License"; You may not use this file except in compliance with
- * the License. You may obtain a copy of the License at:
- *                      www.st.com/SLA0044
- *
- ******************************************************************************
+ * Implementation/modification:
+ * Copyright (C) 2022-2025 Levi Gillis - All Rights Reserved
+ * You may use, distribute and modify this code under the
+ * terms of the GNU Lesser General Public License v3.0 license.
  */
+
 #ifdef USBCON
 /* Includes ------------------------------------------------------------------*/
-#include "usbd_core.h"
 #include "usbd_desc.h"
+#include "USB_EP.h"
+#include "usbd_core.h"
 #include "utils.h"
 #include <variant.h>
 
@@ -72,9 +67,9 @@
 #endif
 
 #define USBD_CLASS_CONFIGURATION_HS_STRING CONCATS(BOARD_NAME, "HID Config")
-#define USBD_CLASS_INTERFACE_HS_STRING CONCATS(BOARD_NAME, "HID Interface")
+#define USBD_CLASS_INTERFACE_HS_STRING     CONCATS(BOARD_NAME, "HID Interface")
 #define USBD_CLASS_CONFIGURATION_FS_STRING CONCATS(BOARD_NAME, "HID Config")
-#define USBD_CLASS_INTERFACE_FS_STRING CONCATS(BOARD_NAME, "HID Interface")
+#define USBD_CLASS_INTERFACE_FS_STRING     CONCATS(BOARD_NAME, "HID Interface")
 
 /* Private macro -------------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
@@ -115,30 +110,30 @@ USBD_DescriptorsTypeDef USBD_Desc = {
 
 /* USB Standard Device Descriptor */
 __ALIGN_BEGIN uint8_t USBD_Class_DeviceDesc[USB_LEN_DEV_DESC] __ALIGN_END = {
-    0x18,                 /* bLength */
+    0x12,                 /* bLength */
     USB_DESC_TYPE_DEVICE, /* bDescriptorType */
 #if ((USBD_LPM_ENABLED == 1) || (USBD_CLASS_BOS_ENABLED == 1))
-    0x01, /*bcdUSB */ /* changed to USB version 2.01
-                      in order to support BOS Desc */
+    0x01, /*bcdUSB */     /* changed to USB version 2.01
+                          in order to support BOS Desc */
 #else
     0x00, /* bcdUSB */
 #endif
     0x02,
-    0x00,             /* bDeviceClass */
-    0x00,             /* bDeviceSubClass */
-    0x00,             /* bDeviceProtocol */
-    USB_MAX_EP0_SIZE, /* bMaxPacketSize */
-    LOBYTE(USBD_VID), /* idVendor */
-    HIBYTE(USBD_VID), /* idVendor */
-    LOBYTE(USBD_PID), /* idProduct */
-    HIBYTE(USBD_PID), /* idProduct */
-    0x00,             /* bcdDevice rel. 0.00 */
+    0x00,                      /* bDeviceClass */
+    0x00,                      /* bDeviceSubClass */
+    0x00,                      /* bDeviceProtocol */
+    USB_EP0_SIZE,              /* bMaxPacketSize */
+    LOBYTE(USBD_VID),          /* idVendor */
+    HIBYTE(USBD_VID),          /* idVendor */
+    LOBYTE(USBD_PID),          /* idProduct */
+    HIBYTE(USBD_PID),          /* idProduct */
+    0x00,                      /* bcdDevice rel. 0.00 */
     0x00,
     USBD_IDX_MFC_STR,          /* Index of manufacturer string */
     USBD_IDX_PRODUCT_STR,      /* Index of product string */
     USBD_IDX_SERIAL_STR,       /* Index of serial number string */
     USBD_MAX_NUM_CONFIGURATION /* bNumConfigurations */
-};                             /* USB_DeviceDescriptor */
+}; /* USB_DeviceDescriptor */
 
 /* USB Device LPM BOS descriptor */
 #if (USBD_LPM_ENABLED == 1)
@@ -165,7 +160,7 @@ __ALIGN_BEGIN uint8_t USBD_BOSDesc[USB_SIZ_BOS_DESC] __ALIGN_END = {
     USB_DESC_TYPE_BOS, /* Device Descriptor Type */
     USB_SIZ_BOS_DESC,  /* Total length of BOS descriptor and all of its sub descs */
     0x00,
-    0x04, /* The number of separate device capability descriptors in the BOS */
+    0x04,              /* The number of separate device capability descriptors in the BOS */
 
     /* ----------- Device Capability Descriptor: CONTAINER_ID ---------- */
     0x14,                   /* bLength */
@@ -184,15 +179,15 @@ __ALIGN_BEGIN uint8_t USBD_BOSDesc[USB_SIZ_BOS_DESC] __ALIGN_END = {
     USBD_BB_URL_STRING_INDEX, /* iAddtionalInfoURL: Index of string descriptor providing a URL where the user can go to get more
                                detailed information about the product and the various Alternate Modes it supports */
 
-    0x02, /* bNumberOfAlternateModes: Number of Alternate modes supported. The
-           maximum value that this field can be set to is MAX_NUM_ALT_MODE. */
+    0x02,                     /* bNumberOfAlternateModes: Number of Alternate modes supported. The
+                               maximum value that this field can be set to is MAX_NUM_ALT_MODE. */
 
-    0x00, /* bPreferredAlternateMode: Index of the preferred Alternate Mode. System
-           software may use this information to provide the user with a better user experience. */
+    0x00,                     /* bPreferredAlternateMode: Index of the preferred Alternate Mode. System
+                               software may use this information to provide the user with a better user experience. */
 
-    0x00, 0x00, /* VCONN Power needed by the adapter for full functionality 000b = 1W */
+    0x00, 0x00,               /* VCONN Power needed by the adapter for full functionality 000b = 1W */
 
-    0x01, 0x00, 0x00, 0x00, /* bmConfigured. 01b: Alternate Mode configuration not attempted or exited */
+    0x01, 0x00, 0x00, 0x00,   /* bmConfigured. 01b: Alternate Mode configuration not attempted or exited */
     0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00,
@@ -200,28 +195,28 @@ __ALIGN_BEGIN uint8_t USBD_BOSDesc[USB_SIZ_BOS_DESC] __ALIGN_END = {
     0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00,
-    0x21, 0x01, /* bcdVersion = 0x0121 */
-    0x00,       /* bAdditionalFailureInfo */
-    0x00,       /* bReserved */
+    0x21, 0x01,                    /* bcdVersion = 0x0121 */
+    0x00,                          /* bAdditionalFailureInfo */
+    0x00,                          /* bReserved */
     LOBYTE(USBD_VID),
-    HIBYTE(USBD_VID), /* wSVID[0]: Standard or Vendor ID. This shall match one of the SVIDs
-                       returned in response to a USB PD Discover SVIDs command */
+    HIBYTE(USBD_VID),              /* wSVID[0]: Standard or Vendor ID. This shall match one of the SVIDs
+                                    returned in response to a USB PD Discover SVIDs command */
 
-    0x00, /* bAlternateMode[0] Index of the Alternate Mode within the SVID as
-           returned in response to a Discover Modes command. Example:
-           0  first Mode entry
-           1  second mode entry */
+    0x00,                          /* bAlternateMode[0] Index of the Alternate Mode within the SVID as
+                                    returned in response to a Discover Modes command. Example:
+                                    0  first Mode entry
+                                    1  second mode entry */
 
     USBD_BB_ALTMODE0_STRING_INDEX, /* iAlternateModeString[0]: Index of string descriptor describing protocol.
                                 It is optional to support this string. */
     LOBYTE(USBD_VID),
-    HIBYTE(USBD_VID), /* wSVID[1]: Standard or Vendor ID. This shall match one of the SVIDs
-                       returned in response to a USB PD Discover SVIDs command */
+    HIBYTE(USBD_VID),              /* wSVID[1]: Standard or Vendor ID. This shall match one of the SVIDs
+                                    returned in response to a USB PD Discover SVIDs command */
 
-    0x01, /* bAlternateMode[1] Index of the Alternate Mode within the SVID as
-           returned in response to a Discover Modes command. Example:
-           0  first Mode entry
-           1  second Mode entry */
+    0x01,                          /* bAlternateMode[1] Index of the Alternate Mode within the SVID as
+                                    returned in response to a Discover Modes command. Example:
+                                    0  first Mode entry
+                                    1  second Mode entry */
 
     USBD_BB_ALTMODE1_STRING_INDEX, /* iAlternateModeString[1]: Index of string descriptor describing protocol.
                                 It is optional to support this string. */

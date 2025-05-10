@@ -1,35 +1,28 @@
-/**
-  ******************************************************************************
-  * @file    USBCore_stm32.h
-  * @author  MCD Application Team
-  * @brief   Header file for the USBCore.cpp file.
-  ******************************************************************************
-  * @attention
-  * 
-  * Modified by Levi Gillis @ 2022
-  * Removed USBComposite specific defines and adjusted for compatibility with arduino
-  *
-  * <h2><center>&copy; Copyright (c) 2015 STMicroelectronics.
-  * All rights reserved.</center></h2>
-  *
-  * This software component is licensed by ST under Ultimate Liberty license
-  * SLA0044, the "License"; You may not use this file except in compliance with
-  * the License. You may obtain a copy of the License at:
-  *                      www.st.com/SLA0044
-  *
-  ******************************************************************************
-  */
+/*
+ * USBCore_stm32.h
+ * Template generated with Stm32CubeMX "usbd_customhid.h":
+ * Copyright (c) 2015 STMicroelectronics.
+ * All rights reserved.
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ * Implementation/modification:
+ * Copyright (C) 2022-2025 Levi Gillis - All Rights Reserved
+ * You may use, distribute and modify this code under the
+ * terms of the GNU Lesser General Public License v3.0 license.
+ */
 
 #ifndef __USBCORE_STM32_H__
 #define __USBCORE_STM32_H__
 
 #ifdef USBCON
 
+#include "USB_EP.h"
 #include "usbd_ioreq.h"
-#include "usbd_ep_conf.h"
 
 #define HID_DESCRIPTOR_TYPE 0x21
-#define HID_REPORT_DESC 0x22
+#define HID_REPORT_DESC     0x22
 
 #ifndef HID_HS_BINTERVAL
 #define HID_HS_BINTERVAL 0x07U
@@ -59,7 +52,7 @@ typedef struct
   uint32_t Protocol;
   uint32_t IdleState;
   uint32_t AltSetting;
-  HID_StateTypeDef TXstate[USB_MAX_EPS];
+  HID_StateTypeDef EPstate[USB_MAX_EPS];
 } USBD_HID_HandleTypeDef;
 
 #endif /* USBCON */

@@ -1,39 +1,33 @@
-/**
- ******************************************************************************
- * @file    USBCore.cpp
- * @author  MCD Application Team
- * @brief   This file provides the HID core functions.
- ******************************************************************************
- * @attention
+/*
+ * USBCore.c
+ * Template generated with Stm32CubeMX "usbd_customhid.c":
+ * Copyright (c) 2015 STMicroelectronics.
+ * All rights reserved.
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
  *
- * Modified by Levi Gillis @ 2022
- * Adjusted and reimplemented for compatibility with arduino
- *
- * <h2><center>&copy; Copyright (c) 2015 STMicroelectronics.
- * All rights reserved.</center></h2>
- *
- * This software component is licensed by ST under Ultimate Liberty license
- * SLA0044, the "License"; You may not use this file except in compliance with
- * the License. You may obtain a copy of the License at:
- *                      www.st.com/SLA0044
- *
- ******************************************************************************
+ * Implementation/modification:
+ * Copyright (C) 2022-2025 Levi Gillis - All Rights Reserved
+ * You may use, distribute and modify this code under the
+ * terms of the GNU Lesser General Public License v3.0 license.
  */
 
 #ifdef USBCON
 
 /* Includes ------------------------------------------------------------------*/
 #include "Arduino.h"
-#include "USBCore_stm32.h"
-#include "usbd_desc.h"
-#include "USBAPI.h"
-#include "PluggableUSB.h"
 #include "PacketBuffer.h"
-#include "usbd_ep_conf.h"
+#include "PluggableUSB.h"
+#include "USBAPI.h"
+#include "USBCore_stm32.h"
+#include "USB_EP_conf.h"
+#include "usbd_desc.h"
 
 static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx);
 static uint8_t USBD_HID_DeInit(USBD_HandleTypeDef *pdev, uint8_t cfgidx);
 static uint8_t USBD_HID_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req);
+static bool Init_Endpoints();
 
 static uint8_t *USBD_HID_GetFSCfgDesc(uint16_t *length);
 static uint8_t *USBD_HID_GetHSCfgDesc(uint16_t *length);
@@ -43,7 +37,7 @@ static uint8_t USBD_HID_EP0_RxReady(USBD_HandleTypeDef *pdev);
 static uint8_t USBD_HID_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum);
 static uint8_t USBD_HID_DataOut(USBD_HandleTypeDef *pdev, uint8_t endp);
 
-bool PrepareReceive(USBD_HandleTypeDef *pdev, uint8_t endp);
+static bool PrepareReceive(USBD_HandleTypeDef *pdev, USBD_HID_HandleTypeDef *hhid, uint8_t ep);
 
 USBD_ClassTypeDef USBD_HID_CLASS = {
     USBD_HID_Init,
@@ -77,18 +71,18 @@ __ALIGN_BEGIN static uint8_t USBD_HID_DeviceQualifierDesc[USB_LEN_DEV_QUALIFIER_
 };
 
 /* Buffers for properly handling interface and report descriptors */
-// uint8_t _initEndpoints[USB_ENDPOINTS];
-#define TEMPCFGBUFFER_LEN 128
-__ALIGN_BEGIN uint8_t tempcfgBuffer[TEMPCFGBUFFER_LEN] __ALIGN_END;
+#ifndef USB_CFGBUFFER_LEN
+#define USB_CFGBUFFER_LEN 128
+#endif
+__ALIGN_BEGIN uint8_t tempcfgBuffer[USB_CFGBUFFER_LEN] __ALIGN_END;
 uint8_t tempcfgbufferpos = 0;
 bool cfgBufferMode = false;
-__ALIGN_BEGIN uint8_t tempdescBuffer[TEMPCFGBUFFER_LEN] __ALIGN_END;
+__ALIGN_BEGIN uint8_t tempdescBuffer[USB_CFGBUFFER_LEN] __ALIGN_END;
 uint8_t tempdescbufferpos = 0;
 bool descBufferMode = false;
 
 /* RX buffers */
-PacketBuffer *RX_Buffers[USB_MAX_EPS];
-bool RX_Buffer_Pending[USB_MAX_EPS];
+PacketBuffer *EP_Buffers[USB_MAX_EPS];
 uint16_t Recv_EP0 = false;
 USBD_SetupReqTypedef EP0Setup;
 
@@ -96,23 +90,37 @@ USBD_SetupReqTypedef EP0Setup;
 USBD_HandleTypeDef hUSBD_Device_HID_Handle;
 
 bool HID_initialized = false;
+PluggableUSBModule *rootModule;
 
-void USB_Begin()
+bool USB_Begin()
 {
-  if (!HID_initialized)
+  if (HID_initialized || rootModule == NULL)
   {
-    /* Init Device Library */
-    if (USBD_Init(&hUSBD_Device_HID_Handle, &USBD_Desc, 0) == USBD_OK)
-    {
-      /* Add Supported Class */
-      if (USBD_RegisterClass(&hUSBD_Device_HID_Handle, &USBD_HID_CLASS) == USBD_OK)
-      {
-        /* Start Device Process */
-        USBD_Start(&hUSBD_Device_HID_Handle);
-        HID_initialized = true;
-      }
-    }
+    return false;
   }
+
+  if (!Init_Endpoints())
+  {
+    return false;
+  }
+
+  /* Init Device Library */
+  if (USBD_Init(&hUSBD_Device_HID_Handle, &USBD_Desc, 0) != USBD_OK)
+  {
+    return false;
+  }
+  /* Add Supported Class */
+  if (USBD_RegisterClass(&hUSBD_Device_HID_Handle, &USBD_HID_CLASS) != USBD_OK)
+  {
+    return false;
+  }
+  /* Start Device Process */
+  if (USBD_Start(&hUSBD_Device_HID_Handle) != USBD_OK)
+  {
+    return false;
+  }
+  HID_initialized = true;
+  return true;
 }
 
 bool GetHHID(USBD_HID_HandleTypeDef *&hhid)
@@ -127,6 +135,11 @@ bool USB_Running()
   return GetHHID(hhid);
 }
 
+bool USB_Connected()
+{
+  return hUSBD_Device_HID_Handle.dev_state == USBD_STATE_CONFIGURED;
+}
+
 void USB_End()
 {
   if (HID_initialized)
@@ -139,15 +152,66 @@ void USB_End()
   }
 }
 
-// bool IsEPIN(uint8_t ep)
-// {
-//   return (_initEndpoints[SMALL_EP(ep)] & USB_ENDPOINT_DIRECTION_MASK);
-// }
+void USB_PlugRoot(PluggableUSBModule *root)
+{
+  bool wasinit = HID_initialized;
+  if (wasinit)
+  {
+    USB_End();
+  }
+  rootModule = root;
+  if (wasinit)
+  {
+    USB_Begin();
+  }
+}
+int PLUG_GetInterface(uint8_t *interfaceCount)
+{
+  return rootModule->getInterface(interfaceCount);
+}
+int PLUG_GetDescriptor(USBSetup &setup)
+{
+  return rootModule->getDescriptor(setup);
+}
+bool PLUG_Setup(USBSetup &setup)
+{
+  return rootModule->setup(setup);
+}
+uint8_t PLUG_GetNumEndpoints()
+{
+  return rootModule->getNumEndpoints();
+}
+uint8_t PLUG_GetNumInterfaces()
+{
+  return rootModule->getNumInterfaces();
+}
+uint8_t PLUG_GetEndpointTypes(uint8_t *types)
+{
+  return rootModule->getEndpointTypes(types);
+}
 
-// uint8_t GetFullEP(uint8_t ep)
-// {
-//   return IsEPIN(ep) ? USB_ENDPOINT_IN(SMALL_EP(ep)) : SMALL_EP(ep);
-// }
+static bool Init_Endpoints()
+{
+  USB_EP_ClearEndpoints();
+  uint8_t eps = PLUG_GetNumEndpoints();
+  if (eps > USB_MAX_EPS)
+  {
+    return false;
+  }
+  uint8_t epstypes[eps];
+  if (eps != PLUG_GetEndpointTypes(epstypes))
+  {
+    return false;
+  }
+  for (uint_fast8_t i = 0; i < eps; i++)
+  {
+    if (!USB_EP_AddEndpoint(epstypes[i]))
+    {
+      return false;
+    }
+  }
+  return true;
+}
 
 USBD_EndpointTypeDef *GetEPTypeDef(uint8_t ep, bool in)
 {
@@ -158,29 +222,103 @@ USBD_EndpointTypeDef *GetEPTypeDef(uint8_t ep, bool in)
   return &hUSBD_Device_HID_Handle.ep_out[SMALL_EP(ep)];
 }
 
+static bool USB_SendAvailable_Internal(USBD_HID_HandleTypeDef *&hhid, uint8_t endp)
+{
+  uint8_t ep = SMALL_EP(endp);
+#if PACKETBUFFER_USE_TX_BUFFERS
+  if (EP_Buffers[ep] != NULL && (!EP_Buffers[ep]->isFull() || PACKETBUFFER_ALLOW_OVERWRITE))
+  {
+    return true;
+  }
+#endif
+  return hUSBD_Device_HID_Handle.dev_state == USBD_STATE_CONFIGURED && hhid->EPstate[ep] != HID_BUSY;
+}
+
+static bool USB_Flush_Internal(USBD_HID_HandleTypeDef *&hhid, uint8_t endp)
+{
+  if (USB_SendAvailable_Internal(hhid, endp))
+  {
+    return true;
+  }
+  uint8_t ep = SMALL_EP(endp);
+  uint8_t EP = IN_EP(endp);
+#if USB_WRITE_TIMEOUT
+  uint32_t start = millis();
+  while (hhid->EPstate[ep] == HID_BUSY && millis() - start < USB_WRITE_TIMEOUT)
+  {
+    delay(1);
+  }
+#else
+  while (hhid->EPstate[ep] == HID_BUSY)
+  {
+    delay(1);
+  }
+#endif
+  USBD_LL_FlushEP(&hUSBD_Device_HID_Handle, EP);
+  return USB_SendAvailable_Internal(hhid, endp);
+}
+
 bool USB_SendAvailable(uint8_t endp)
 {
   USBD_HID_HandleTypeDef *hhid;
-  return GetHHID(hhid) && hUSBD_Device_HID_Handle.dev_state == USBD_STATE_CONFIGURED && hhid->TXstate[SMALL_EP(endp)] != HID_BUSY;
+  if (!GetHHID(hhid))
+  {
+    return false;
+  }
+  return USB_SendAvailable_Internal(hhid, endp);
 }
+
+#if PACKETBUFFER_USE_TX_BUFFERS
+static bool USB_SendTXBufferUnsafe(USBD_HandleTypeDef *pdev, USBD_HID_HandleTypeDef *hhid, uint8_t ep)
+{
+  if (EP_Buffers[ep] && !EP_Buffers[ep]->isEmpty())
+  {
+    hhid->EPstate[ep] = HID_BUSY;
+    uint32_t len = USB_EP_SIZE;
+    auto buf = EP_Buffers[ep]->PrepareRead(len);
+    pdev->ep_in[ep].total_length = len;
+    (void)USBD_LL_Transmit(pdev, ep, buf, len);
+    return true;
+  }
+  return false;
+}
+#endif
 
 int USB_SendQuick(uint8_t endp, const void *data, int len)
 {
   USBD_HID_HandleTypeDef *hhid;
-  USB_Flush(endp);
-  if (USB_SendAvailable(endp) && GetHHID(hhid))
-  {
-    uint8_t ep = SMALL_EP(endp);
-    uint8_t EP = IN_EP(endp);
-    hhid->TXstate[ep] = HID_BUSY;
-    hUSBD_Device_HID_Handle.ep_in[ep].total_length = len;
-    (void)USBD_LL_Transmit(&hUSBD_Device_HID_Handle, EP, (uint8_t *)data, len);
-  }
-  else
+  if (!GetHHID(hhid))
   {
     return 0;
   }
-  return len;
+  if (!USB_SendAvailable_Internal(hhid, endp) && !USB_Flush_Internal(hhid, endp))
+  {
+    return 0;
+  }
+  uint8_t ep = SMALL_EP(endp);
+  uint8_t EP = IN_EP(endp);
+#if PACKETBUFFER_USE_TX_BUFFERS
+  auto buffer = EP_Buffers[ep];
+  if (buffer == NULL)
+  {
+    return 0;
+  }
+  auto write = buffer->Write((uint8_t *)data, len);
+  if (hhid->EPstate[ep] == HID_IDLE)
+  {
+    USB_SendTXBufferUnsafe(&hUSBD_Device_HID_Handle, hhid, ep);
+  }
+  return write;
+#else
+  if (hhid->EPstate[ep] == HID_IDLE)
+  {
+    hhid->EPstate[ep] = HID_BUSY;
+    hUSBD_Device_HID_Handle.ep_in[ep].total_length = len;
+    (void)USBD_LL_Transmit(&hUSBD_Device_HID_Handle, EP, (uint8_t *)data, len);
+    return len;
+  }
+  return 0;
+#endif
 }
 
 int USB_Send(uint8_t endp, const void *data, int len)
@@ -190,7 +328,7 @@ int USB_Send(uint8_t endp, const void *data, int len)
   {
     int ret = USB_SendQuick(endp, data, len);
     // USB_Send is blocking in the original avr implementation
-    USB_Flush(endp);
+    USB_Flush_Internal(hhid, endp);
     return ret;
   }
   return 0;
@@ -200,7 +338,7 @@ int USB_SendControl(uint8_t flags, const void *d, int len)
 {
   if (cfgBufferMode)
   {
-    if (tempcfgbufferpos + len < TEMPCFGBUFFER_LEN)
+    if (tempcfgbufferpos + len < USB_CFGBUFFER_LEN)
     {
       uint8_t cpy = 0;
       uint8_t *ptr = (uint8_t *)d;
@@ -220,22 +358,28 @@ int USB_SendControl(uint8_t flags, const void *d, int len)
       }
       return cpy;
     }
+    return 0;
   }
   if (descBufferMode)
   {
-    if (tempdescbufferpos + len < TEMPCFGBUFFER_LEN)
+    if (tempdescbufferpos + len < USB_CFGBUFFER_LEN)
     {
       memcpy(tempdescBuffer + tempdescbufferpos, d, len);
       tempdescbufferpos += len;
       return len;
     }
+    return 0;
+  }
+  if (!USB_Running())
+  {
+    return 0;
   }
   return (USBD_CtlSendData(&hUSBD_Device_HID_Handle, (uint8_t *)d, len) == USBD_OK) ? len : 0;
 }
 
 uint8_t USB_SendSpace(uint8_t endp)
 {
-  return USB_SendAvailable(endp) ? USB_EP_SIZE : 0;
+  return USB_SendAvailable(endp) ? (endp == 0 ? USB_EP0_SIZE : USB_EP_SIZE) : 0;
 }
 
 int USB_SendZLP(uint8_t endp)
@@ -245,26 +389,21 @@ int USB_SendZLP(uint8_t endp)
 
 void USB_Flush(uint8_t endp)
 {
-  if (USB_SendAvailable(endp))
-  {
-    return;
-  }
-  uint8_t ep = SMALL_EP(endp);
-  uint8_t EP = IN_EP(endp);
-  USBD_LL_FlushEP(&hUSBD_Device_HID_Handle, EP);
   USBD_HID_HandleTypeDef *hhid;
   if (GetHHID(hhid))
   {
-    while (hhid->TXstate[ep] == HID_BUSY)
-    {
-      delay(1);
-    }
+    USB_Flush_Internal(hhid, endp);
   }
 }
 
 uint8_t USB_Available(uint8_t endp)
 {
-  return RX_Buffers[SMALL_EP(endp)]->totalBytesAvailable();
+  auto buffer = EP_Buffers[SMALL_EP(endp)];
+  if (!buffer)
+  {
+    return 0;
+  }
+  return buffer->available();
 }
 
 int USB_Recv(uint8_t endp, void *data, int len)
@@ -274,21 +413,22 @@ int USB_Recv(uint8_t endp, void *data, int len)
     return 0;
   }
   uint8_t ep = SMALL_EP(endp);
-  uint8_t EP = ep;
-  int read = 0;
-  if (RX_Buffers[ep]->size())
+  if (ep == 0)
   {
-    auto buf = RX_Buffers[ep]->read();
-    read = buf->Read((uint8_t *)data, len);
-    if (buf->Empty())
-    {
-      RX_Buffers[ep]->shift();
-      if (ep != 0)
-      {
-        PrepareReceive(&hUSBD_Device_HID_Handle, EP);
-      }
-    }
+    return USB_RecvControl(data, len);
   }
+  USBD_HID_HandleTypeDef *hhid;
+  if (!GetHHID(hhid))
+  {
+    return 0;
+  }
+  auto buffer = EP_Buffers[ep];
+  if (buffer == NULL)
+  {
+    return 0;
+  }
+  uint8_t read = buffer->Read((uint8_t *)data, len);
+  PrepareReceive(&hUSBD_Device_HID_Handle, hhid, ep);
   return read;
 }
 
@@ -302,7 +442,16 @@ int USB_Recv(uint8_t endp)
 
 int USB_RecvControl(void *data, int len)
 {
-  return USB_Recv(0, data, len);
+  if (len <= 0)
+  {
+    return 0;
+  }
+  auto buffer = EP_Buffers[0];
+  if (buffer == NULL)
+  {
+    return 0;
+  }
+  return buffer->Read((uint8_t *)data, len);
 }
 
 /**
@@ -326,39 +475,37 @@ static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev,
     pdev->pClassData = NULL;
     return (uint8_t)USBD_EMEM;
   }
-  
+
   (void)USBD_memset(hhid, 0, sizeof(USBD_HID_HandleTypeDef));
 
   pdev->pClassData = (void *)hhid;
 
-  RX_Buffers[0] = new PacketBuffer();
+  EP_Buffers[0] = new SplitPacketBuffer<USB_EP0_SIZE, EP0_PACKETBUFFER_COUNT>();
 
-  for (uint8_t i = 2; i < USB_MAX_EPS_SLOTS; i++)
+  uint_fast8_t eps = USB_EP_GetNumEndpoints();
+  const ep_desc_t *epdefs = USB_EP_GetEndpointsSlots();
+
+  for (uint_fast8_t i = 0; i < eps; i++)
   {
-    if (ep_def[i].ep_size != 0)
+    uint8_t EP = epdefs[i].ep_num;
+    uint8_t ep = SMALL_EP(EP);
+    USBD_EndpointTypeDef *eptdef = GetEPTypeDef(EP, IS_IN_EP(EP));
+    eptdef->bInterval = ((pdev->dev_speed == USBD_SPEED_HIGH) ? HID_HS_BINTERVAL : HID_FS_BINTERVAL);
+    USBD_LL_OpenEP(pdev, EP, epdefs[i].ep_type, USB_EP_SIZE);
+    eptdef->is_used = 1U;
+    hhid->EPstate[ep] = HID_IDLE;
+    if (IS_IN_EP(EP))
     {
-      uint8_t EP = ep_def[i].ep_num;
-      uint8_t ep = SMALL_EP(EP);
-      USBD_EndpointTypeDef *eptdef = GetEPTypeDef(EP, IS_IN_EP(EP));
-      if (pdev->dev_speed == USBD_SPEED_HIGH)
+#if PACKETBUFFER_USE_TX_BUFFERS
+      EP_Buffers[ep] = new SplitPacketBuffer<USB_EP_SIZE, PACKETBUFFER_COUNT>();
+#endif
+    }
+    else
+    {
+      EP_Buffers[ep] = new SplitPacketBuffer<USB_EP_SIZE, PACKETBUFFER_COUNT>();
+      if (!PrepareReceive(pdev, hhid, ep))
       {
-        eptdef->bInterval = HID_HS_BINTERVAL;
-      }
-      else
-      {
-        eptdef->bInterval = HID_FS_BINTERVAL;
-      }
-      USBD_LL_OpenEP(pdev, EP, ep_def[ep].ep_type & USB_ENDPOINT_TYPE_MASK, ep_def[ep].ep_size);
-      eptdef->is_used = 1U;
-      if (IS_IN_EP(EP))
-      {
-        hhid->TXstate[ep] = HID_IDLE;
-      }
-      else
-      {
-        RX_Buffers[ep] = new PacketBuffer();
-        RX_Buffer_Pending[ep] = false;
-        PrepareReceive(pdev, EP);
+        return (uint8_t)USBD_EMEM;
       }
     }
   }
@@ -377,20 +524,27 @@ static uint8_t USBD_HID_DeInit(USBD_HandleTypeDef *pdev,
 {
   UNUSED(cfgidx);
 
-  for (uint8_t i = 0; i < USB_MAX_EPS_SLOTS; i++)
+  if (EP_Buffers[0])
   {
-    if (ep_def[i].ep_size != 0)
+    delete EP_Buffers[0];
+    EP_Buffers[0] = NULL;
+  }
+
+  uint_fast8_t eps = USB_EP_GetNumEndpoints();
+  const ep_desc_t *epdefs = USB_EP_GetEndpointsSlots();
+
+  for (uint_fast8_t i = 0; i < eps; i++)
+  {
+    uint8_t EP = epdefs[i].ep_num;
+    uint8_t ep = SMALL_EP(EP);
+    USBD_EndpointTypeDef *epdef = GetEPTypeDef(ep, IS_IN_EP(EP));
+    USBD_LL_CloseEP(pdev, EP);
+    epdef->is_used = 0U;
+    epdef->bInterval = 0U;
+    if (EP_Buffers[ep])
     {
-      uint8_t EP = ep_def[i].ep_num;
-      uint8_t ep = SMALL_EP(EP);
-      USBD_EndpointTypeDef *epdef = GetEPTypeDef(ep, IS_IN_EP(EP));
-      USBD_LL_CloseEP(pdev, EP);
-      epdef->is_used = 0U;
-      epdef->bInterval = 0U;
-      if (RX_Buffers[ep])
-      {
-        delete RX_Buffers[ep];
-      }
+      delete EP_Buffers[ep];
+      EP_Buffers[ep] = NULL;
     }
   }
 
@@ -410,7 +564,7 @@ USBD_StatusTypeDef USBD_HID_GetDescriptor(USBD_HandleTypeDef *pdev,
   USBSetup setup = {req->bmRequest, req->bRequest, lowByte(req->wValue), highByte(req->wValue), req->wIndex, req->wLength};
   tempdescbufferpos = 0;
   descBufferMode = true;
-  auto result = PluggableUSB().getDescriptor(setup);
+  auto result = PLUG_GetDescriptor(setup);
   descBufferMode = false;
 
   if (result && tempdescbufferpos > 0)
@@ -433,7 +587,7 @@ uint8_t HandleSetup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
   case USB_REQ_TYPE_CLASS:
   {
     USBSetup setup = {req->bmRequest, req->bRequest, lowByte(req->wValue), highByte(req->wValue), req->wIndex, req->wLength};
-    bool result = PluggableUSB().setup(setup);
+    bool result = PLUG_Setup(setup);
     if (result)
     {
       ret = USBD_OK;
@@ -550,11 +704,11 @@ static uint8_t USBD_HID_Setup(USBD_HandleTypeDef *pdev,
       return (uint8_t)USBD_FAIL;
     }
     EP0Setup = *req;
-    RX_Buffers[0]->clear();
-    auto buf = RX_Buffers[0]->reserve();
-    Recv_EP0 = min(req->wLength, (uint16_t)(PACKETBUFFER_COUNT * PACKETBUFFER_SIZE));
-    auto len = min(req->wLength, (uint16_t)PACKETBUFFER_SIZE);
-    USBD_CtlPrepareRx(&hUSBD_Device_HID_Handle, buf->buf, len);
+    EP_Buffers[0]->clear();
+    Recv_EP0 = min(req->wLength, (uint16_t)(PACKETBUFFER_COUNT * USB_EP0_SIZE));
+    uint32_t len = Recv_EP0;
+    auto buf = EP_Buffers[0]->PrepareWrite(len);
+    USBD_CtlPrepareRx(&hUSBD_Device_HID_Handle, buf, len);
     return (uint8_t)USBD_OK;
   }
   return HandleSetup(pdev, req);
@@ -575,7 +729,7 @@ static uint8_t *USBD_HID_GetFSCfgDesc(uint16_t *length)
   tempcfgbufferpos = confsize;
   cfgBufferMode = true;
   u8 interfaces = 0;
-  *length = PluggableUSB().getInterface(&interfaces);
+  *length = PLUG_GetInterface(&interfaces);
   *length += confsize;
   cfgBufferMode = false;
   ConfigDescriptor config = D_CONFIG(*length, interfaces);
@@ -609,15 +763,43 @@ static uint8_t *USBD_HID_GetOtherSpeedCfgDesc(uint16_t *length)
   return USBD_HID_GetFSCfgDesc(length);
 }
 
+static uint8_t USBD_HID_HandleDataOut(USBD_HandleTypeDef *pdev, uint8_t endp)
+{
+  USBD_HID_HandleTypeDef *hhid;
+  if (!GetHHID(hhid))
+  {
+    return USBD_FAIL;
+  }
+  uint8_t ep = SMALL_EP(endp);
+  auto buffer = EP_Buffers[ep];
+  if (buffer == NULL)
+  {
+    // this should never happen;
+    return (uint8_t)USBD_FAIL;
+  }
+  buffer->CommitWrite(USBD_LL_GetRxDataSize(pdev, endp));
+  hhid->EPstate[ep] = HID_IDLE;
+  if (ep != 0)
+  {
+    PrepareReceive(pdev, hhid, ep);
+  }
+  return (uint8_t)USBD_OK;
+}
+
 static uint8_t USBD_HID_EP0_RxReady(USBD_HandleTypeDef *pdev)
 {
   if (Recv_EP0)
   {
-    USBD_HID_DataOut(pdev, 0);
-    auto read = RX_Buffers[0]->totalBytesAvailable();
-    if (Recv_EP0 < read)
+    if (USBD_HID_HandleDataOut(pdev, 0) != USBD_OK)
     {
-      USBD_CtlPrepareRx(pdev, RX_Buffers[0]->reserve()->buf, min((uint16_t)(Recv_EP0 - read), (uint16_t)PACKETBUFFER_SIZE));
+      return (uint8_t)USBD_FAIL;
+    }
+    auto read = EP_Buffers[0]->available();
+    if (Recv_EP0 > read)
+    {
+      uint32_t len = Recv_EP0 - read;
+      auto buf = EP_Buffers[0]->PrepareWrite(len);
+      USBD_CtlPrepareRx(pdev, buf, len);
       return (uint8_t)USBD_OK;
     }
     Recv_EP0 = 0;
@@ -642,20 +824,35 @@ static uint8_t USBD_HID_DataIn(USBD_HandleTypeDef *pdev,
 
   uint8_t ep = SMALL_EP(endp);
 
-  if ((pdev->ep_in[ep].total_length > 0U) &&
-      ((pdev->ep_in[ep].total_length % pdev->ep_in[ep].maxpacket) == 0U))
+  USBD_HID_HandleTypeDef *hhid;
+  if (!GetHHID(hhid))
+  {
+    return (uint8_t)USBD_FAIL;
+  }
+
+#if PACKETBUFFER_USE_TX_BUFFERS
+  EP_Buffers[ep]->CommitRead(pdev->ep_in[ep].total_length);
+#endif
+
+  if (pdev->ep_in[ep].total_length > 0U && (pdev->ep_in[ep].total_length % pdev->ep_in[ep].maxpacket) == 0U)
   {
     /* Update the packet total length */
     pdev->ep_in[ep].total_length = 0U;
 
     /* Send ZLP */
     (void)USBD_LL_Transmit(pdev, endp, NULL, 0U);
+    return (uint8_t)USBD_OK;
   }
-  else
+#if PACKETBUFFER_USE_TX_BUFFERS
+  if (!USB_SendTXBufferUnsafe(pdev, hhid, ep))
   {
-    ((USBD_HID_HandleTypeDef *)pdev->pClassData)->TXstate[ep] = HID_IDLE;
+    hhid->EPstate[ep] = HID_IDLE;
   }
   return (uint8_t)USBD_OK;
+#else
+  hhid->EPstate[ep] = HID_IDLE;
+  return (uint8_t)USBD_OK;
+#endif
 }
 
 /**
@@ -667,29 +864,30 @@ static uint8_t USBD_HID_DataIn(USBD_HandleTypeDef *pdev,
  */
 static uint8_t USBD_HID_DataOut(USBD_HandleTypeDef *pdev, uint8_t endp)
 {
-  uint8_t ep = SMALL_EP(endp);
-  auto buf = RX_Buffers[ep]->reserve();
-  buf->pos = 0;
-  buf->len = USBD_LL_GetRxDataSize(pdev, endp);
-  RX_Buffers[ep]->commit();
-  RX_Buffer_Pending[ep] = false;
-  if (ep != 0 && !PrepareReceive(pdev, endp))
-  {
-    USBD_LL_PrepareReceive(pdev, endp, 0, 0);
-  }
-  return (uint8_t)USBD_OK;
+  return USBD_HID_HandleDataOut(pdev, endp);
 }
 
-bool PrepareReceive(USBD_HandleTypeDef *pdev, uint8_t endp)
+/// @param ep SMALL_EP(endp)
+static bool PrepareReceive(USBD_HandleTypeDef *pdev, USBD_HID_HandleTypeDef *hhid, uint8_t ep)
 {
-  uint8_t ep = SMALL_EP(endp);
-  if (RX_Buffer_Pending[ep] == false && RX_Buffers[ep]->available())
+  if (ep == 0)
   {
-    USBD_LL_PrepareReceive(pdev, ep, RX_Buffers[ep]->reserve()->buf, USB_FS_MAX_PACKET_SIZE);
-    RX_Buffer_Pending[ep] = true;
+    // this should never happen
+    return false;
+  }
+  if (hhid->EPstate[ep] == HID_BUSY)
+  {
     return true;
   }
-  return false;
+  if (EP_Buffers[ep]->isFull() && !PACKETBUFFER_ALLOW_OVERWRITE)
+  {
+    return false;
+  }
+  hhid->EPstate[ep] = HID_BUSY;
+  uint32_t len = USB_EP_SIZE;
+  auto buf = EP_Buffers[ep]->PrepareWrite(len);
+  USBD_LL_PrepareReceive(pdev, ep, buf, len);
+  return true;
 }
 
 /**
