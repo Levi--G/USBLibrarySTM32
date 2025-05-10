@@ -23,7 +23,6 @@ void loop()
 {
   if (USBSerial.available())
   {
-    USBSerial.print("Echo: ");
-    USBSerial.println((char)USBSerial.read());
+    USBSerial.print((char)USBSerial.read());
   }
 }
