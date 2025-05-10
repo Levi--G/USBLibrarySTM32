@@ -1,6 +1,8 @@
 /*
   PluggableUSB.h
   Copyright (c) 2015 Arduino LLC
+    * Modified by Levi Gillis @ 2022-2025
+      Changes can be found in the git repo https://github.com/Levi--G/USBLibrarySTM32
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public

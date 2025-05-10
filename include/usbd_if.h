@@ -1,12 +1,11 @@
 /**
-  ******************************************************************************
-  * @file    usbd_if.h
-  * @author  fpistm
-  * @brief   Header file for the usbd_if.c file
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file    usbd_if.h
+ * @author  fpistm
+ * @brief   Header file for the usbd_if.c file
+ ******************************************************************************
+ */
 
-/* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __USBD_IF_H
 #define __USBD_IF_H
 
@@ -16,17 +15,18 @@
 
 /* Re-enumeration handling*/
 #ifndef USBD_ENUM_DELAY
-  #define USBD_ENUM_DELAY 10
+#define USBD_ENUM_DELAY 10
 #endif
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-void USBD_reenumerate(void);
+  void USBD_reenumerate(void);
 
-/* Weaked function */
-void USBD_SystemClockConfigFromResume(void);
+  /* Weaked function */
+  void USBD_SystemClockConfigFromResume(void);
 
 #ifdef __cplusplus
 }

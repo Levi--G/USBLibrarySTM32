@@ -1,3 +1,10 @@
+/*
+ * USBOptions.h
+ * Copyright (C) 2022-2025 Levi Gillis - All Rights Reserved
+ * You may use, distribute and modify this code under the
+ * terms of the GNU Lesser General Public License v3.0 license.
+ */
+
 #pragma once
 
 #include "USBOptionsDefaults.h"
@@ -6,9 +13,9 @@
 /*
 For PIO, in platformio.ini:
 build_flags =
-	-D USBCON
-	-D HAL_PCD_MODULE_ENABLED
-	-D Option=value
+  -D USBCON
+  -D HAL_PCD_MODULE_ENABLED
+  -D Option=value
 */
 
 #ifndef USB_EP0_SIZE

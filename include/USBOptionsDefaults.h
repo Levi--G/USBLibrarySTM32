@@ -1,8 +1,15 @@
+/*
+ * USBOptionsDefaults.h
+ * Copyright (C) 2022-2025 Levi Gillis - All Rights Reserved
+ * You may use, distribute and modify this code under the
+ * terms of the GNU Lesser General Public License v3.0 license.
+ */
+
 #pragma once
 
 #include <stm32_def.h>
 
-//These defaults are for values that depend on a certain board
+// These defaults are for values that depend on a certain board
 
 #if defined(USB)
 #define PACKETBUFFER_COUNT_DEFAULT 3

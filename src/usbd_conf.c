@@ -1,30 +1,24 @@
-/**
- ******************************************************************************
- * @file    usbd_conf.c
- * @author  MCD Application Team
- * @brief   USB Device configuration and interface file
- ******************************************************************************
- * @attention
+/*
+ * usbd_conf.c
+ * Template generated with Stm32CubeMX "usbd_conf.c":
+ * Copyright (c) 2023 STMicroelectronics.
+ * All rights reserved.
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
  *
- * Modified by Levi Gillis @ 2022
- * Adjusted and reimplemented for compatibility with arduino
- *
- * <h2><center>&copy; Copyright (c) 2015 STMicroelectronics.
- * All rights reserved.</center></h2>
- *
- * This software component is licensed by ST under Ultimate Liberty license
- * SLA0044, the "License"; You may not use this file except in compliance with
- * the License. You may obtain a copy of the License at:
- *                      www.st.com/SLA0044
- *
- ******************************************************************************
+ * Implementation/modification:
+ * Copyright (C) 2022-2025 Levi Gillis - All Rights Reserved
+ * You may use, distribute and modify this code under the
+ * terms of the GNU Lesser General Public License v3.0 license.
  */
+
 #ifdef USBCON
 /* Includes ------------------------------------------------------------------*/
+#include "USB_EP_conf.h"
+#include "stm32yyxx_ll_pwr.h"
 #include "usbd_core.h"
 #include "usbd_if.h"
-#include "usbd_ep_conf.h"
-#include "stm32yyxx_ll_pwr.h"
 
 #ifndef HAL_PCD_MODULE_ENABLED
 #error "HAL_PCD_MODULE_ENABLED is required"
@@ -341,7 +335,7 @@ void HAL_PCD_ResumeCallback(PCD_HandleTypeDef *hpcd)
     USBD_SystemClockConfigFromResume();
 
     /* Reset SLEEPDEEP bit of Cortex System Control Register */
-    SCB->SCR &= (uint32_t)~((uint32_t)(SCB_SCR_SLEEPDEEP_Msk | SCB_SCR_SLEEPONEXIT_Msk));
+    SCB->SCR &= (uint32_t) ~((uint32_t)(SCB_SCR_SLEEPDEEP_Msk | SCB_SCR_SLEEPONEXIT_Msk));
   }
   __HAL_PCD_UNGATE_PHYCLOCK(hpcd);
   USBD_LL_Resume(hpcd->pData);
@@ -435,7 +429,7 @@ void USBWakeUp_IRQHandler_dummy(void)
   if ((&g_hpcd)->Init.low_power_enable)
   {
     /* Reset SLEEPDEEP bit of Cortex System Control Register */
-    SCB->SCR &= (uint32_t)~((uint32_t)(SCB_SCR_SLEEPDEEP_Msk | SCB_SCR_SLEEPONEXIT_Msk));
+    SCB->SCR &= (uint32_t) ~((uint32_t)(SCB_SCR_SLEEPDEEP_Msk | SCB_SCR_SLEEPONEXIT_Msk));
 
     /* Configures system clock after wake-up */
     USBD_SystemClockConfigFromResume();
