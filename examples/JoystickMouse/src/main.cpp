@@ -1,6 +1,6 @@
 #include <Arduino.h>
-#include "Mouse.h"
 #include "Joystick.h"
+#include "Mouse.h"
 
 #define LED PC13
 #define HIGHPIN A7
