@@ -28,10 +28,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// #include "core_cm3.h"
-
-#define CDC_SERIAL_BUFFER_SIZE 256
-
 /* For information purpose only since RTS is not always handled by the terminal application */
 #define CDC_LINESTATE_DTR 0x01 // Data Terminal Ready
 #define CDC_LINESTATE_RTS 0x02 // Ready to Send
@@ -159,18 +155,13 @@ bool USBCDC::setup(USBSetup &setup)
     if (r == CDC_SET_LINE_CODING)
     {
       USB_RecvControl((void *)&_usbLineInfo, 7);
+      USB_SendZLP(0);
     }
 
     if (r == CDC_SET_CONTROL_LINE_STATE)
     {
       _usbLineInfo.lineState = setup.wValueL;
-    }
-
-    if (r == CDC_SET_LINE_CODING || r == CDC_SET_CONTROL_LINE_STATE)
-    {
-      // TODO reset
-      //  	NVIC_SystemReset();
-      //  USB_SendZLP(0);
+      USB_SendZLP(0);
     }
 
     if (CDC_SEND_BREAK == r)
@@ -212,12 +203,16 @@ int _serialPeek = -1;
 
 int USBCDC::available(void)
 {
-  return USB_Available(CDC_ENDPOINT_OUT) + (_serialPeek != -1);
+  return USB_Available(CDC_RX) + (_serialPeek != -1);
 }
 
 int USBCDC::availableForWrite(void)
 {
-  return USB_SendAvailable(CDC_ENDPOINT_OUT) ? USB_EP_SIZE : 0;
+#if CDC_APPEND
+  return USB_AppendAvailable(CDC_TX);
+#else
+  return USB_SendAvailable(CDC_TX);
+#endif
 }
 
 int USBCDC::peek(void)
@@ -236,32 +231,43 @@ int USBCDC::read(void)
     _serialPeek = -1;
     return res;
   }
-  return USB_Recv(CDC_ENDPOINT_OUT);
+  return USB_Recv(CDC_RX);
 }
 
-size_t USBCDC::readBytes(char *buffer, size_t length)
+size_t USBCDC::readBytes(uint8_t *buffer, size_t length)
 {
   size_t count = 0;
   _startMillis = millis();
   while (count < length)
   {
-    uint32_t n = USB_Recv(CDC_ENDPOINT_OUT, buffer + count, length - count);
+    uint32_t n = USB_Recv(CDC_RX, buffer + count, length - count);
     if (n == 0 && (millis() - _startMillis) >= _timeout)
       break;
     count += n;
   }
   return count;
 }
+size_t USBCDC::readAvailableBytes(uint8_t *buffer, size_t length)
+{
+  return USB_Recv(CDC_RX, buffer, length);
+}
 
 void USBCDC::flush(void)
 {
-  USB_Flush(CDC_ENDPOINT_IN);
+  USB_Flush(CDC_TX);
 }
 
 size_t USBCDC::write(const uint8_t *buffer, size_t size)
 {
-  uint32_t r = USB_Send(CDC_ENDPOINT_IN, buffer, size);
-
+#if CDC_APPEND
+  uint32_t r = USB_AppendQuick(CDC_TX, buffer, size);
+#else
+#if (CDC_ASYNC)
+  uint32_t r = USB_SendQuick(CDC_TX, buffer, size);
+#else
+  uint32_t r = USB_Send(CDC_TX, buffer, size);
+#endif
+#endif
   if (r > 0)
   {
     return r;
@@ -304,21 +310,19 @@ USBCDC::operator bool()
 
 int32_t USBCDC::readBreak()
 {
-  uint8_t enableInterrupts = ((__get_PRIMASK() & 0x1) == 0);
-
   // disable interrupts,
   // to avoid clearing a breakValue that might occur
   // while processing the current break value
-  __disable_irq();
+  bool enable = USB_DisableIRQ();
 
   int32_t ret = breakValue;
 
   breakValue = -1;
 
-  if (enableInterrupts)
+  if (enable)
   {
     // re-enable the interrupts
-    __enable_irq();
+    USB_EnableIRQ();
   }
 
   return ret;

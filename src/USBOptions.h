@@ -41,15 +41,21 @@ build_flags =
 #define PACKETBUFFER_COUNT PACKETBUFFER_COUNT_DEFAULT
 #endif
 
-#ifndef PACKETBUFFER_ALLOW_OVERWRITE
-// Allows buffers to be overwritten in case of data overload,
+#ifndef PACKETBUFFER_ALLOW_RXOVERWRITE
+// Allows RX buffers to be overwritten in case of data overload,
 // this prevents hangs but might cause data loss if polling rate is too low
 // recommended for stm32 with "classic" USB, not needed for stm32 with USB_OTF_FS
-#define PACKETBUFFER_ALLOW_OVERWRITE PACKETBUFFER_ALLOW_OVERWRITE_DEFAULT
+#define PACKETBUFFER_ALLOW_RXOVERWRITE PACKETBUFFER_ALLOW_RXOVERWRITE_DEFAULT
+#endif
+
+#ifndef PACKETBUFFER_ALLOW_TXOVERWRITE
+// Allows TX buffers to be overwritten in case of data overload,
+// this prevents delays for up to USB_WRITE_TIMEOUT but will cause data loss if too much data is sent
+#define PACKETBUFFER_ALLOW_TXOVERWRITE false
 #endif
 
 #ifndef PACKETBUFFER_USE_FAST_AVAILABLE
-// Allows a faster version of available calculations,
+// Allows a faster version of available space calculations,
 // some libraries might not work and not see incoming data
 #define PACKETBUFFER_USE_FAST_AVAILABLE true
 #endif
@@ -62,6 +68,7 @@ build_flags =
 
 #ifndef USB_WRITE_TIMEOUT
 // Sets a timeout for the USB_Send and USB_Flush function
+// The total timeout is USB_WRITE_TIMEOUT * (datalength / USB_EP_SIZE)
 #define USB_WRITE_TIMEOUT 100
 #endif
 
@@ -70,4 +77,52 @@ build_flags =
 // disabled to use the EP for other libraries but might not be compatible with some OSses
 // or programs that might need it to be enabled
 #define USB_SERIAL_USE_ACM_EP false
+#endif
+
+// The interval for the usb endpoints to use
+#ifndef CDC_BINTERVAL
+#define CDC_BINTERVAL 0x10U
+#endif
+
+// Enables or disables CDC to use async communications
+// not waiting until tranfser is finished before continuing
+#ifndef CDC_ASYNC
+#define CDC_ASYNC PACKETBUFFER_USE_TX_BUFFERS
+#endif
+
+// Enables CDC to append new data to buffers that are waiting to be send
+// More efficient on USB transfer time and memory
+// allowing buffers to be smaller but uses more CPU
+#ifndef CDC_APPEND
+#define CDC_APPEND PACKETBUFFER_USE_TX_BUFFERS
+#endif
+#if CDC_APPEND && !CDC_ASYNC
+#error "CDC_APPEND is always CDC_ASYNC"
+#endif
+
+// The size of the buffer that holds the USB descriptors in bytes
+// Make this larger if your device does not register completely/correctly
+#ifndef USB_CFGBUFFER_LEN
+#define USB_CFGBUFFER_LEN 128
+#endif
+
+// Disables configuration checks
+#ifndef DISABLE_USB_WARNINGS
+#define DISABLE_USB_WARNINGS false
+#endif
+
+
+
+#if EP0_PACKETBUFFER_COUNT < 2 && !DISABLE_USB_WARNINGS
+#warning "EP0 PacketBuffer is likely too small, expect issues"
+#endif
+
+#if PACKETBUFFER_COUNT < 2 && !DISABLE_USB_WARNINGS
+#warning "PacketBuffer is likely too small, expect issues"
+#endif
+
+#if !PACKETBUFFER_USE_TX_BUFFERS && !DISABLE_USB_WARNINGS
+#if CDC_APPEND
+#warning "CDC_APPEND only works together with PACKETBUFFER_USE_TX_BUFFERS concider disabling it"
+#endif
 #endif

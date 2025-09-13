@@ -104,7 +104,8 @@ public:
   using Print::write; // pull in write(str) from Print
   operator bool();
 
-  size_t readBytes(char *buffer, size_t length);
+  size_t readBytes(uint8_t *buffer, size_t length);
+  size_t readAvailableBytes(uint8_t *buffer, size_t length);
 
   // This method allows processing "SEND_BREAK" requests sent by
   // the USB host. Those requests indicate that the host wants to

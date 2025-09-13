@@ -107,10 +107,21 @@ int USB_Send(uint8_t ep, const void *data, int len);
 /// @param len data length
 /// @return length written to EP, can be smaller than len
 int USB_SendQuick(uint8_t ep, const void *data, int len);
-/// @brief Returns if sending is possible on this endpoint
+/// @brief Appends data to an endpoint, non blocking,
+/// only use for endpoints without standard packet sizes like CDC
 /// @param ep TX (IN) endpoint
-/// @return true if sending is possible
-bool USB_SendAvailable(uint8_t ep);
+/// @param data data buffer
+/// @param len data length
+/// @return length written to EP, can be smaller than len
+int USB_AppendQuick(uint8_t ep, const void *data, int len);
+/// @brief Returns the free space in the next buffer
+/// @param ep TX (IN) endpoint
+/// @return 0 if full, otherwise buffer length
+uint8_t USB_SendAvailable(uint8_t ep);
+/// @brief Returns the free space of the endpoint
+/// @param ep TX (IN) endpoint
+/// @return amount of bytes available
+uint8_t USB_AppendAvailable(uint8_t ep);
 /// @brief Receives data on a RX (OUT) endpoint
 /// @param ep RX (OUT) endpoint
 /// @param data data buffer
@@ -122,9 +133,13 @@ int USB_Recv(uint8_t ep, void *data, int len);
 /// @param ep RX (OUT) endpoint
 /// @return 1 if reading was successful
 int USB_Recv(uint8_t ep);
-/// @brief Flushes an endpoint
-/// @param ep RX or TX endpoint
-void USB_Flush(uint8_t ep);
+/// @brief Flushes a TX endpoint
+/// @param ep TX endpoint
+bool USB_Flush(uint8_t ep, ulong timeout = USB_WRITE_TIMEOUT);
+/// @brief Clears the TX EP buffers of any data present, will not clear the native buffer or transfer progress
+void USB_Clear_TXEP(uint8_t ep);
+/// @brief Clears the RX EP buffers of any data present, will not clear the native buffer or transfer progress
+void USB_Clear_RXEP(uint8_t ep);
 /// @brief Starts the USB and allocates needed resources
 /// @return true if successful
 bool USB_Begin();
@@ -140,6 +155,11 @@ bool USB_Running();
 bool USB_Connected();
 /// @brief Stops all USB activity and cleans up used resources
 void USB_End();
+/// @brief Stops all IRQ and returns if they should be enabled again when done
+/// @return when true call USB_EnableIRQ when done, don't when false
+bool USB_DisableIRQ();
+/// @brief Enables the IRQ, only call when USB_DisableIRQ returned true
+void USB_EnableIRQ();
 
 // for pluggableusb support
 int PLUG_GetInterface(uint8_t *interfaceCount);

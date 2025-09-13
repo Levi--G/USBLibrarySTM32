@@ -11,10 +11,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#if PACKETBUFFER_COUNT < 2
-#warning "PacketBuffer is likely too small, expect issues"
-#endif
-
 class PacketBuffer
 {
 public:
@@ -24,11 +20,15 @@ public:
   virtual void CommitRead(uint32_t len) = 0;
   virtual uint32_t Read(uint8_t *data, uint32_t len) = 0;
   virtual uint32_t Write(uint8_t *data, uint32_t len) = 0;
+  virtual uint32_t Append(uint8_t *data, uint32_t len) = 0;
   virtual bool isEmpty() = 0;
   virtual bool isFull() = 0;
-  virtual void clear() = 0;
+  virtual void clearRead() = 0;
+  virtual void clearWrite() = 0;
+  virtual void ClearBuffer() = 0;
   virtual uint32_t available() = 0;
   virtual uint32_t availableToWrite() = 0;
+  virtual uint32_t availableToAppend() = 0;
   virtual ~PacketBuffer() = default;
 };
 
@@ -60,13 +60,27 @@ struct USBD_HID_BufferItem
     }
     return write;
   }
+  uint32_t Append(uint8_t *data, uint32_t length)
+  {
+    uint8_t write = min(size - len, length);
+    if (write)
+    {
+      memcpy(buf + len, data, write);
+      len += write;
+    }
+    return write;
+  }
   uint32_t Remaining()
   {
     return len - pos;
   }
+  uint32_t RemainingSize()
+  {
+    return size - pos;
+  }
   bool Empty()
   {
-    return Remaining() <= 0;
+    return (len - pos) <= 0;
   }
   void Clear()
   {
@@ -110,8 +124,9 @@ public:
   virtual uint8_t *PrepareRead(uint32_t &len)
   {
     isPrepared = true;
-    if (!buffer[readHead].Remaining())
+    if (buffer[readHead].Empty())
     {
+      buffer[readHead].Clear();
       readHead = newReadHead();
     }
     len = min(len, buffer[readHead].Remaining());
@@ -124,14 +139,16 @@ public:
       buffer[readHead].ReadLength(len);
       if (buffer[readHead].Empty())
       {
+        buffer[readHead].Clear();
         readHead = newReadHead();
       }
     }
   }
   uint32_t Read(uint8_t *data, uint32_t len)
   {
-    if (!buffer[readHead].Remaining())
+    if (buffer[readHead].Empty())
     {
+      buffer[readHead].Clear();
       readHead = newReadHead();
     }
     uint32_t read = 0;
@@ -140,6 +157,7 @@ public:
       read = buffer[readHead].Read(data, len);
       if (buffer[readHead].Empty())
       {
+        buffer[readHead].Clear();
         readHead = newReadHead();
       }
     }
@@ -148,13 +166,26 @@ public:
   virtual uint32_t Write(uint8_t *data, uint32_t len)
   {
     uint32_t write = 0;
-    if (writeHead == readHead)
+    while (write != len && writeHead != readHead)
     {
-      // overwrite last
-      writeHead = prevUnsafeHead(writeHead);
+      write += buffer[writeHead].Write(data + write, len - write);
+      writeHead = newWriteHead();
     }
-    write = buffer[writeHead].Write(data, len);
-    writeHead = newWriteHead();
+    return write;
+  }
+  virtual uint32_t Append(uint8_t *data, uint32_t len)
+  {
+    uint32_t write = 0;
+    auto prev = prevUnsafeHead(writeHead);
+    if (prev != readHead)
+    {
+      writeHead = prev;
+    }
+    while (write != len && writeHead != readHead)
+    {
+      write += buffer[writeHead].Append(data + write, len - write);
+      writeHead = newWriteHead();
+    }
     return write;
   }
   virtual bool isEmpty()
@@ -169,15 +200,26 @@ public:
     return readHead == writeHead;
 #endif
   }
-  void clear()
+  void clearRead()
   {
-    readHead = 0;
-    writeHead = 1;
+    readHead = prevUnsafeHead(writeHead);
+  }
+  void clearWrite()
+  {
+    writeHead = nextUnsafeHead(readHead);
+  }
+  virtual void ClearBuffer()
+  {
+    if (writeHead == readHead)
+    {
+      writeHead = prevUnsafeHead(writeHead);
+    }
   }
   virtual uint32_t available()
   {
-    if (!buffer[readHead].Remaining())
+    if (buffer[readHead].Empty())
     {
+      buffer[readHead].Clear();
       readHead = newReadHead();
     }
     return getAvailable(readHead, writeHead);
@@ -186,19 +228,33 @@ public:
   {
     return readHead == writeHead ? 0 : capacity;
   }
+  virtual uint32_t availableToAppend()
+  {
+    if (readHead == writeHead)
+    {
+      return 0;
+    }
+    uint32_t total = 0;
+    int ptr = writeHead;
+    int endptr = readHead;
+    for (; ptr != endptr; ptr = nextUnsafeHead(ptr))
+    {
+      total += buffer[ptr].RemainingSize();
+    }
+    return total;
+  }
 
   uint32_t getAvailable(int head, int otherhead)
   {
 #if PACKETBUFFER_USE_FAST_AVAILABLE
     return buffer[head].Remaining();
 #else
-    uint32_t16_t total = 0;
+    uint32_t total = 0;
     auto ptr = head;
     auto endptr = otherhead;
-    for (size_t i = 0; i != endptr; i++)
+    for (; ptr != endptr; ptr = nextUnsafeHead(ptr))
     {
-      total += buffer[i].Remaining();
-      i = newUnsafeHead(ptr);
+      total += buffer[ptr].Remaining();
     }
     return total;
 #endif
@@ -220,6 +276,10 @@ private:
   }
   int newWriteHead()
   {
+    if (readHead == writeHead)
+    {
+      return writeHead;
+    }
     return nextUnsafeHead(writeHead);
   }
   int nextUnsafeHead(int current)
