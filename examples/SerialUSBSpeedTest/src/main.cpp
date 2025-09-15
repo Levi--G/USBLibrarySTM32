@@ -27,7 +27,7 @@ void loop()
   available = SerialUSB.available();
   if (available)
   {
-    bytes = SerialUSB.readBytes((char *)buffer, available);
+    bytes = SerialUSB.readBytes(buffer, available);
     SerialUSB.write(buffer, bytes);
   }
 }

@@ -19,13 +19,14 @@ build_flags =
 */
 
 #ifndef USB_EP0_SIZE
+// This is the endpoint 0 size used for control messages.
 // This should really stay at max size, but in theory can be lowered
 #define USB_EP0_SIZE MAX_USB_EP_SIZE
 #endif
 #ifndef USB_EP_SIZE
-// This definitions is usefull if you want to reduce the EP_SIZE to save ram
+// This definition is useful if you want to reduce the EP_SIZE to save ram
 // Don't forget to also make the epsize smaller in the interface definition
-#define USB_EP_SIZE 64
+#define USB_EP_SIZE MAX_USB_EP_SIZE
 #endif
 
 #ifndef EP0_PACKETBUFFER_COUNT
@@ -110,8 +111,6 @@ build_flags =
 #ifndef DISABLE_USB_WARNINGS
 #define DISABLE_USB_WARNINGS false
 #endif
-
-
 
 #if EP0_PACKETBUFFER_COUNT < 2 && !DISABLE_USB_WARNINGS
 #warning "EP0 PacketBuffer is likely too small, expect issues"
